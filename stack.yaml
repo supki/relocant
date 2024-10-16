@@ -1,0 +1,6 @@
+resolver: lts-22.27
+packages:
+  - '.'
+extra-deps:
+allow-newer: true
+
