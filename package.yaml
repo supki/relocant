@@ -25,10 +25,17 @@ default-extensions:
   - ImportQualifiedPost
   - NoFieldSelectors
   - OverloadedStrings
+  - StrictData
 
 library:
   dependencies:
+    - bytestring
+    - crypton
     - envparse
+    - filepath
+    - memory
+    - postgresql-simple
+    - time
   source-dirs:
     src
   other-modules:

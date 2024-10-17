@@ -1,0 +1,74 @@
+cabal-version: 1.24
+
+-- This file has been generated from package.yaml by hpack version 0.36.0.
+--
+-- see: https://github.com/sol/hpack
+
+name:           relocant
+version:        1.0.0
+synopsis:       This is relocant
+description:    See README.markdown
+author:         Matvey Aksenov
+maintainer:     matvey.aksenov@@gmail.com
+copyright:      2024 Matvey Aksenov
+license:        BSD2
+license-file:   LICENSE
+build-type:     Custom
+extra-source-files:
+    README.markdown
+    CHANGELOG.markdown
+
+custom-setup
+  setup-depends:
+      Cabal
+    , base
+    , directory
+    , filepath
+    , process
+
+library
+  exposed-modules:
+      App
+      Cfg
+      Relocant.Migration
+      Relocant.Script
+  other-modules:
+      Meta_relocant
+      Paths_relocant
+  hs-source-dirs:
+      src
+  default-extensions:
+      ImportQualifiedPost
+      NoFieldSelectors
+      OverloadedStrings
+      StrictData
+  ghc-options: -funbox-strict-fields -Wall -Wno-incomplete-uni-patterns -Werror
+  build-depends:
+      base >=4.7 && <5
+    , bytestring
+    , crypton
+    , envparse
+    , filepath
+    , memory
+    , postgresql-simple
+    , time
+  default-language: Haskell2010
+
+test-suite spec
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Paths_relocant
+  hs-source-dirs:
+      test
+  default-extensions:
+      ImportQualifiedPost
+      NoFieldSelectors
+      OverloadedStrings
+      StrictData
+  ghc-options: -freduction-depth=0 -Wall -Wno-incomplete-uni-patterns -Werror -threaded -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , hspec
+    , relocant
+  default-language: Haskell2010
