@@ -6,6 +6,7 @@
 {-# LANGUAGE ViewPatterns #-}
 module Relocant.Migration
   ( Migration(..)
+  , createTable
   , loadAll
   , loadByID
   ) where
@@ -41,8 +42,26 @@ instance Eq At where
   At x == At y =
     zonedTimeToUTC x == zonedTimeToUTC y
 
+createTable :: DB.Connection -> IO ()
+createTable conn = do
+  _ <- DB.execute_ conn [DB.sql|
+    SET client_min_messages TO 'warning'
+  |]
+  _ <- DB.execute_ conn [DB.sql|
+    CREATE TABLE IF NOT EXISTS migration
+    ( id         TEXT NOT NULL
+    , name       TEXT NOT NULL
+    , bytes      BYTEA NOT NULL
+    , sha1       BYTEA NOT NULL
+    , applied_at TIMESTAMPTZ NOT NULL
+    , PRIMARY KEY (id)
+    )
+  |]
+  pure ()
+
 loadAll :: DB.Connection -> IO [Migration]
-loadAll conn =
+loadAll conn = do
+  createTable conn
   DB.queryWith_ migrationP conn [DB.sql|
     SELECT id
          , name

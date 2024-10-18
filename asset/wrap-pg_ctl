@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+declare -r ROOT_DIR=${PWD}/.pg
+declare -r CLIENTS_DIR=${ROOT_DIR}/clients
+declare -r CLIENT=${CLIENTS_DIR}/$PPID
+
+main() {
+  declare -r cmd=$1
+  case $cmd in
+    start)
+      mkdir -p "$CLIENTS_DIR"
+      touch "$CLIENT"
+      start-postgres
+      ;;
+
+    stop)
+      shift
+      remove-self
+      remove-stale-clients
+      if is-empty-dir "$CLIENTS_DIR"; then
+        pg_ctl stop --silent "$@"
+      fi
+      ;;
+
+    reset)
+      psql -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO public"
+      ;;
+
+    *)
+      echo 'Usage: nix-shell --run "./asset/wrap-pg_ctl (start | stop | reset)"'
+      exit 1
+      ;;
+  esac
+}
+
+start-postgres() {
+  pg_ctl_status=$(set +e; pg_ctl status 1>/dev/null 2>/dev/null; echo $?)
+  case $pg_ctl_status in
+    4)
+      pg_ctl initdb --silent
+      start-postgres-go
+      createdb "$PGDATABASE"
+      ;;
+    3)
+      start-postgres-go
+      ;;
+  esac
+}
+
+start-postgres-go() {
+  pg_ctl start --silent --wait --log "${ROOT_DIR}/pg.log" -o "-k $PGHOST -h ''"
+}
+
+remove-self() {
+  if [ -e "$CLIENT" ]; then
+    rm "$CLIENT"
+  fi
+}
+
+remove-stale-clients() {
+  shopt -s nullglob
+  for client in "$CLIENTS_DIR"/*; do
+    kill -0 $(basename $client) 2>/dev/null || rm "$client"
+  done
+}
+
+is-empty-dir() {
+  find "$1" -mindepth 1 -exec false {} + -quit
+}
+
+main "$@"
