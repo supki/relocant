@@ -6,14 +6,15 @@ import Options.Applicative
 
 
 data Cmd
-  = ListScripts FilePath
-  | ListMigrations ByteString
-  | DryRun ByteString FilePath
+  = Unapplied ByteString FilePath
+  | Applied ByteString
+  | Verify ByteString FilePath
+  | Version
     deriving (Show, Eq)
 
 parse :: IO Cmd
 parse =
-  execParser
+  customExecParser defaultPrefs {prefShowHelpOnError = True}
     (info
       (parser <**> helper)
       (fullDesc <> progDesc "Migrate PostgreSQL database" <> header "relocant - migrating utility"))
@@ -21,30 +22,49 @@ parse =
 parser :: Parser Cmd
 parser =
   hsubparser
-    ( command "list-scripts"
-      (info listScriptsP (progDesc "list migration scripts"))
-   <> command "list-migrations"
-      (info listMigrationsP (progDesc "list applied migrations"))
-   <> command "dry-run"
-      (info dryRunP (progDesc "see which migrations are going to be applied without applying them"))
+    ( command "unapplied"
+      (info unappliedP (progDesc "list unapplied migrations"))
+   <> command "applied"
+      (info appliedP (progDesc "list applied migrations"))
+   <> command "verify"
+      (info verifyP (progDesc "verify that all migrations that are supposed to be applied are and those that aren't aren't"))
+   <> command "version"
+      (info versionP (progDesc "see library's version"))
     )
+   -- command "apply (unapplied)"
+   -- command "dump-schema (as initial migration)"
+   -- --with-content
+   -- command "mark-applied (specific script)" ?
+   -- command "mark-unapplied (specific migration)" ?
+   -- --table-name (e.g., 'public.migration')
+   -- environment variables ?
+   -- --format
 
-listScriptsP :: Parser Cmd
-listScriptsP = do
-  dir <-
-    strOption (short 'd' <> long "directory" <> help "Directory containing .sql scripts")
-  pure (ListScripts dir)
+unappliedP :: Parser Cmd
+unappliedP = do
+  connectionString <- connectionStringO
+  dir <- directoryO
+  pure (Unapplied connectionString dir)
 
-listMigrationsP :: Parser Cmd
-listMigrationsP = do
-  connectionString <-
-    strOption (short 'c' <> long "connection-string" <> help "PostgreSQL connection string")
-  pure (ListMigrations connectionString)
+appliedP :: Parser Cmd
+appliedP = do
+  connectionString <- connectionStringO
+  pure (Applied connectionString)
 
-dryRunP :: Parser Cmd
-dryRunP = do
-  connectionString <-
-    strOption (short 'c' <> long "connection-string" <> help "PostgreSQL connection string")
-  dir <-
-    strOption (short 'd' <> long "directory" <> help "Directory containing .sql scripts")
-  pure (DryRun connectionString dir)
+verifyP :: Parser Cmd
+verifyP = do
+  connectionString <- connectionStringO
+  dir <- directoryO
+  pure (Verify connectionString dir)
+
+versionP :: Parser Cmd
+versionP =
+  pure Version
+
+connectionStringO :: Parser ByteString
+connectionStringO =
+  strOption (short 'c' <> long "connection-string" <> help "PostgreSQL connection string")
+
+directoryO :: Parser String
+directoryO =
+  strOption (short 'd' <> long "directory" <> help "Directory containing .sql scripts")

@@ -3,7 +3,7 @@
 module Relocant.Migration.Merge
   ( Result(..)
   , merge
-  , canApply
+  , converged
   ) where
 
 import Relocant.Migration (Migration(..))
@@ -26,9 +26,9 @@ data Result = Result
     -- recorded migration
   } deriving (Show, Eq)
 
-canApply :: Result -> Bool
-canApply = \case
-  Result {unrecorded = [], scriptMissing = [], contentMismatch = []} -> True
+converged :: Result -> Bool
+converged = \case
+  Result {unrecorded = [], scriptMissing = [], contentMismatch = [], unapplied = []} -> True
   _ -> False
 
 merge :: [Migration] -> [Script] -> Result

@@ -4,6 +4,7 @@ module Relocant.App
   ( run
   ) where
 
+import Control.Monad (unless)
 import Data.ByteString (ByteString)
 import Data.Foldable (traverse_)
 import System.Exit (exitFailure)
@@ -16,29 +17,39 @@ import Relocant.Migration.Merge qualified as Migration (merge)
 import Relocant.Migration.Merge qualified as Migration.Merge
 import Relocant.Script qualified as Script
 
+import qualified Meta_relocant as Meta
+
 
 run :: IO ()
 run = do
   cmd <- Opts.parse
   case cmd of
-    Opts.ListScripts dir -> do
-      scripts <- Script.listDirectory dir
-      traverse_ print scripts
-    Opts.ListMigrations connectionString -> do
+    Opts.Unapplied connectionString dir -> do
+      migrations <-
+        liftA2 Migration.merge
+          (loadAll connectionString)
+          (Script.listDirectory dir)
+      traverse_ print migrations.unapplied
+    Opts.Applied connectionString -> do
       migrations <- loadAll connectionString
       traverse_ print migrations
-    Opts.DryRun connectionString dir -> do
-      migrations <- loadAll connectionString
-      scripts <- Script.listDirectory dir
-      case Migration.merge migrations scripts of
-        result
-          | Migration.Merge.canApply result ->
-            traverse_ print result.unapplied
-          | otherwise -> do
-            print result.unrecorded
-            print result.scriptMissing
-            print result.contentMismatch
-            exitFailure
+    Opts.Verify connectionString dir -> do
+      migrations <-
+        liftA2 Migration.merge
+          (loadAll connectionString)
+          (Script.listDirectory dir)
+      unless (Migration.Merge.converged migrations) $ do
+        putStrLn "unrecorded:"
+        traverse_ print migrations.unrecorded
+        putStrLn "script missing:"
+        traverse_ print migrations.scriptMissing
+        putStrLn "content mismatch:"
+        traverse_ print migrations.contentMismatch
+        putStrLn "unapplied:"
+        traverse_ print migrations.unapplied
+        exitFailure
+    Opts.Version ->
+      putStrLn Meta.version
 
 loadAll :: ByteString -> IO [Migration]
 loadAll connectionString = do
