@@ -1,5 +1,4 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE OverloadedRecordDot #-}
 {-# LANGUAGE PackageImports #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE RecordWildCards #-}
@@ -17,22 +16,20 @@ import Data.Maybe (listToMaybe)
 import Data.Time (ZonedTime, zonedTimeToUTC)
 import Database.PostgreSQL.Simple qualified as DB
 import Database.PostgreSQL.Simple.FromField qualified as DB (FromField)
-import Database.PostgreSQL.Simple.ToField qualified as DB (ToField)
 import Database.PostgreSQL.Simple.FromRow qualified as DB (RowParser, field)
 import Database.PostgreSQL.Simple.SqlQQ qualified as DB (sql)
 import Prelude hiding (id, readFile)
 
+import Relocant.Migration.ID qualified as Migration (ID)
+
 
 data Migration = Migration
-  { id        :: ID
+  { id        :: Migration.ID
   , name      :: Name
   , bytes     :: ByteString
   , sha1      :: Digest SHA1
   , appliedAt :: At
   } deriving (Show, Eq)
-
-newtype ID = ID String
-    deriving (Show, Eq, DB.FromField, DB.ToField)
 
 newtype Name = Name String
     deriving (Show, Eq, DB.FromField)
@@ -56,7 +53,7 @@ loadAll conn =
   ORDER BY id
   |]
 
-loadByID :: ID -> DB.Connection -> IO (Maybe Migration)
+loadByID :: Migration.ID -> DB.Connection -> IO (Maybe Migration)
 loadByID id conn = do
   ms <- DB.queryWith migrationP conn [DB.sql|
     SELECT id

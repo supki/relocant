@@ -25,15 +25,18 @@ default-extensions:
   - ImportQualifiedPost
   - NoFieldSelectors
   - OverloadedStrings
+  - OverloadedRecordDot
   - StrictData
 
 library:
   dependencies:
     - bytestring
     - crypton
+    - directory
     - envparse
     - filepath
     - memory
+    - optparse-applicative
     - postgresql-simple
     - time
   source-dirs:
@@ -47,6 +50,20 @@ library:
     - -Wno-incomplete-uni-patterns
     - -Werror
 
+executables:
+  relocant:
+    dependencies:
+      - relocant
+    source-dirs:
+      driver
+    main:
+      Main.hs
+    ghc-options:
+      - -Wall
+      - -Wno-incomplete-uni-patterns
+      # - -Werror
+      - -threaded
+      - -with-rtsopts=-N
 
 tests:
   spec:
@@ -64,4 +81,3 @@ tests:
       - -Werror
       - -threaded
       - -with-rtsopts=-N
-

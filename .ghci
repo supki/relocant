@@ -7,4 +7,5 @@
 :set -XImportQualifiedPost
 :set -XNoFieldSelectors
 :set -XOverloadedStrings
+:set -XOverloadedRecordDot
 :set -XStrictData

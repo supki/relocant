@@ -1,7 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE NamedFieldPuns #-}
-{-# LANGUAGE OverloadedRecordDot #-}
 {-# LANGUAGE PackageImports #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TypeApplications #-}
@@ -10,6 +9,7 @@ module Relocant.Script
   , ID
   , Name
   , Content
+  , listDirectory
   , readFile
   , recordApplied
   ) where
@@ -19,16 +19,21 @@ import Data.ByteArray (convert)
 import Data.ByteString (ByteString)
 import Data.ByteString qualified as ByteString
 import Data.Char qualified as Char
+import Data.List qualified as List
+import Data.String (fromString)
 import Database.PostgreSQL.Simple qualified as DB
 import Database.PostgreSQL.Simple.ToField qualified as DB (ToField)
 import Database.PostgreSQL.Simple.SqlQQ qualified as DB (sql)
 import GHC.Records (HasField(getField))
 import Prelude hiding (id, readFile)
-import System.FilePath (takeBaseName)
+import System.Directory qualified as D
+import System.FilePath ((</>), isExtensionOf, takeBaseName)
+
+import Relocant.Migration.ID qualified as Migration (ID)
 
 
 data Script = Script
-  { id      :: ID
+  { id      :: Migration.ID
   , name    :: Name
   , content :: Content
   } deriving (Show, Eq)
@@ -42,7 +47,7 @@ instance HasField "sha1" Script (Digest SHA1) where
     m.content.sha1
 
 newtype ID = ID String
-    deriving (Show, Eq, DB.ToField)
+    deriving (Show, Eq, Ord, DB.ToField)
 
 newtype Name = Name String
     deriving (Show, Eq, DB.ToField)
@@ -51,6 +56,12 @@ data Content = Content
   { bytes :: ByteString
   , sha1  :: Digest SHA1
   } deriving (Show, Eq)
+
+listDirectory :: FilePath -> IO [Script]
+listDirectory dir = do
+  paths <- D.listDirectory dir
+  scripts <- traverse (\path -> readFile (dir </> path)) (filter (isExtensionOf ".sql") paths)
+  pure (List.sortOn (\script -> script.id) scripts)
 
 readFile :: FilePath -> IO Script
 readFile path = do
@@ -72,14 +83,14 @@ readContent path = do
     , sha1 = hash bytes
     }
 
-parseFilePath :: FilePath -> (ID, Name)
+parseFilePath :: FilePath -> (Migration.ID, Name)
 parseFilePath path = do
   let
     basename =
       takeBaseName path
     (id, _rest) =
       span Char.isAlphaNum basename
-  (ID id, Name basename)
+  (fromString id, Name basename)
 
 recordApplied :: Script -> DB.Connection -> IO ()
 recordApplied m conn = do

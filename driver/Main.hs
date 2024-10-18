@@ -1,11 +1,8 @@
 module Main (main) where
 
-import qualified App
-import qualified Cfg
+import Relocant.App qualified as App
 
 
 main :: IO ()
-main = do
-  cfg <- Cfg.get
-  App.run cfg
-
+main =
+  App.run
