@@ -32,8 +32,10 @@ library
       Cfg
       Relocant.App
       Relocant.App.Opts
+      Relocant.DB
       Relocant.Migration
       Relocant.Migration.ID
+      Relocant.Migration.Merge
       Relocant.Script
   other-modules:
       Meta_relocant

@@ -8,6 +8,7 @@ import Options.Applicative
 data Cmd
   = ListScripts FilePath
   | ListMigrations ByteString
+  | DryRun ByteString FilePath
     deriving (Show, Eq)
 
 parse :: IO Cmd
@@ -24,16 +25,26 @@ parser =
       (info listScriptsP (progDesc "list migration scripts"))
    <> command "list-migrations"
       (info listMigrationsP (progDesc "list applied migrations"))
+   <> command "dry-run"
+      (info dryRunP (progDesc "see which migrations are going to be applied without applying them"))
     )
 
 listScriptsP :: Parser Cmd
 listScriptsP = do
-  path <-
+  dir <-
     strOption (short 'd' <> long "directory" <> help "Directory containing .sql scripts")
-  pure (ListScripts path)
+  pure (ListScripts dir)
 
 listMigrationsP :: Parser Cmd
 listMigrationsP = do
   connectionString <-
     strOption (short 'c' <> long "connection-string" <> help "PostgreSQL connection string")
   pure (ListMigrations connectionString)
+
+dryRunP :: Parser Cmd
+dryRunP = do
+  connectionString <-
+    strOption (short 'c' <> long "connection-string" <> help "PostgreSQL connection string")
+  dir <-
+    strOption (short 'd' <> long "directory" <> help "Directory containing .sql scripts")
+  pure (DryRun connectionString dir)
