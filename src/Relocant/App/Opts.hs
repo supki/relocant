@@ -3,14 +3,14 @@ module Relocant.App.Opts where
 
 import Options.Applicative
 
-import Relocant.DB (ConnectionString)
+import Relocant.DB (ConnectionString, TableName)
 
 
 data Cmd
-  = Unapplied ConnectionString FilePath
-  | Applied ConnectionString
-  | Verify ConnectionString FilePath Bool
-  | Apply ConnectionString FilePath
+  = Unapplied ConnectionString TableName FilePath
+  | Applied ConnectionString TableName
+  | Verify ConnectionString TableName FilePath Bool
+  | Apply ConnectionString TableName FilePath
   | Version
     deriving (Show, Eq)
 
@@ -39,34 +39,38 @@ parser =
    -- --with-content
    -- command "mark-applied (specific script)" ?
    -- command "mark-unapplied (specific migration)" ?
-   -- --table-name (e.g., 'public.migration')
    -- environment variables ?
    -- --format (text / json)
    -- actual logging
+   -- track execution time
 
 unappliedP :: Parser Cmd
 unappliedP = do
   connectionString <- connectionStringO
+  tableName <- tableNameO
   dir <- directoryO
-  pure (Unapplied connectionString dir)
+  pure (Unapplied connectionString tableName dir)
 
 appliedP :: Parser Cmd
 appliedP = do
   connectionString <- connectionStringO
-  pure (Applied connectionString)
+  tableName <- tableNameO
+  pure (Applied connectionString tableName)
 
 verifyP :: Parser Cmd
 verifyP = do
   connectionString <- connectionStringO
+  tableName <- tableNameO
   dir <- directoryO
   quiet <- switch (short 'q' <> long "quiet" <> help "do not output the problems")
-  pure (Verify connectionString dir quiet)
+  pure (Verify connectionString tableName dir quiet)
 
 applyP :: Parser Cmd
 applyP = do
   connectionString <- connectionStringO
+  tableName <- tableNameO
   dir <- directoryO
-  pure (Apply connectionString dir)
+  pure (Apply connectionString tableName dir)
 
 versionP :: Parser Cmd
 versionP =
@@ -79,6 +83,17 @@ connectionStringO =
    <> long "connection-string"
    <> metavar "CONNECTION_STRING"
    <> help "PostgreSQL connection string"
+    )
+
+tableNameO :: Parser TableName
+tableNameO =
+  strOption
+    ( short 't'
+   <> long "migration-table-name"
+   <> metavar "IDENTIFIER"
+   <> value "public.relocant_migration"
+   <> showDefault
+   <> help "Table containing recorded migrations"
     )
 
 directoryO :: Parser String

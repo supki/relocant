@@ -20,6 +20,7 @@ import Database.PostgreSQL.Simple.FromRow qualified as DB (RowParser, field)
 import Database.PostgreSQL.Simple.SqlQQ qualified as DB (sql)
 import Prelude hiding (id, readFile)
 
+import Relocant.DB qualified as DB (TableName)
 import Relocant.Migration.ID qualified as Migration (ID)
 
 
@@ -41,29 +42,29 @@ instance Eq At where
   At x == At y =
     zonedTimeToUTC x == zonedTimeToUTC y
 
-loadAll :: DB.Connection -> IO [Migration]
-loadAll conn = do
-  DB.queryWith_ migrationP conn [DB.sql|
+loadAll :: DB.TableName -> DB.Connection -> IO [Migration]
+loadAll table conn = do
+  DB.queryWith migrationP conn [DB.sql|
     SELECT id
          , name
          , bytes
          , sha1
          , applied_at
-      FROM migration
+      FROM ?
   ORDER BY id
-  |]
+  |] (DB.Only table)
 
-loadByID :: Migration.ID -> DB.Connection -> IO (Maybe Migration)
-loadByID id conn = do
+loadByID :: DB.TableName -> Migration.ID -> DB.Connection -> IO (Maybe Migration)
+loadByID table id conn = do
   ms <- DB.queryWith migrationP conn [DB.sql|
     SELECT id
          , name
          , bytes
          , sha1
          , applied_at
-      FROM migration
+      FROM ?
      WHERE id = ?
-  |] (DB.Only id)
+  |] (table, id)
   pure (listToMaybe ms)
 
 migrationP :: DB.RowParser Migration

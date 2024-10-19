@@ -23,37 +23,37 @@ run :: IO ()
 run = do
   cmd <- Opts.parse
   case cmd of
-    Opts.Unapplied connectionString dir ->
-      runUnapplied connectionString dir
-    Opts.Applied connectionString ->
-      runApplied connectionString
-    Opts.Verify connectionString dir quiet ->
-      runVerify connectionString dir quiet
-    Opts.Apply connectionString dir ->
-      runApply connectionString dir
+    Opts.Unapplied connectionString table dir ->
+      runUnapplied connectionString table dir
+    Opts.Applied connectionString table ->
+      runApplied connectionString table
+    Opts.Verify connectionString table dir quiet ->
+      runVerify connectionString table dir quiet
+    Opts.Apply connectionString table dir ->
+      runApply connectionString table dir
     Opts.Version ->
       putStrLn Meta.version
 
-runUnapplied :: DB.ConnectionString -> FilePath -> IO ()
-runUnapplied connectionString dir =
-  withTryLock connectionString $ \conn -> do
-    migrations <- loadAll conn dir
+runUnapplied :: DB.ConnectionString -> DB.TableName -> FilePath -> IO ()
+runUnapplied connectionString table dir =
+  withTryLock connectionString table $ \conn -> do
+    migrations <- loadAll table conn dir
     traverse_ print migrations.unapplied
 
-runApplied :: DB.ConnectionString -> IO ()
-runApplied connectionString = do
-  withTryLock connectionString $ \conn -> do
-    migrations <- Migration.loadAll conn
+runApplied :: DB.ConnectionString -> DB.TableName -> IO ()
+runApplied connectionString table = do
+  withTryLock connectionString table $ \conn -> do
+    migrations <- Migration.loadAll table conn
     traverse_ print migrations
 
-runVerify :: DB.ConnectionString -> FilePath -> Bool -> IO ()
-runVerify connectionString dir quiet =
-  withTryLock connectionString $ \conn ->
-    verify conn dir quiet
+runVerify :: DB.ConnectionString -> DB.TableName -> FilePath -> Bool -> IO ()
+runVerify connectionString table dir quiet =
+  withTryLock connectionString table $ \conn ->
+    verify table conn dir quiet
 
-verify :: DB.Connection -> FilePath -> Bool -> IO ()
-verify conn dir quiet = do
-  migrations <- loadAll conn dir
+verify :: DB.TableName -> DB.Connection -> FilePath -> Bool -> IO ()
+verify table conn dir quiet = do
+  migrations <- loadAll table conn dir
   unless (Migration.Merge.converged migrations) $ do
     unless quiet $ do
       unless (null migrations.unrecorded) $ do
@@ -70,34 +70,34 @@ verify conn dir quiet = do
         traverse_ print migrations.unapplied
     exitFailure
 
-runApply :: DB.ConnectionString -> FilePath -> IO ()
-runApply connectionString dir =
-  withLock connectionString $ \conn -> do
-    migrations <- loadAll conn dir
+runApply :: DB.ConnectionString -> DB.TableName -> FilePath -> IO ()
+runApply connectionString table dir =
+  withLock connectionString table $ \conn -> do
+    migrations <- loadAll table conn dir
     unless (Migration.Merge.ready migrations)
       exitFailure
-    for_ migrations.unapplied $ \migration -> do
+    for_ migrations.unapplied $ \script -> do
       DB.withTransaction conn $ do
-        Script.run migration conn
-        Script.recordApplied migration conn
-    verify conn dir False
+        Script.run script conn
+        Script.recordApplied script conn
+    verify table conn dir False
 
-withLock :: DB.ConnectionString -> (DB.Connection -> IO b) -> IO b
-withLock connectionString m = do
-  conn <- DB.connect connectionString
-  DB.withLock conn $
+withLock :: DB.ConnectionString -> DB.TableName -> (DB.Connection -> IO b) -> IO b
+withLock connectionString tableName m = do
+  conn <- DB.connect connectionString tableName
+  DB.withLock tableName conn $
     m conn
 
-withTryLock :: DB.ConnectionString -> (DB.Connection -> IO a) -> IO a
-withTryLock connectionString m = do
-  conn <- DB.connect connectionString
-  DB.withTryLock conn $ \locked -> do
+withTryLock :: DB.ConnectionString -> DB.TableName -> (DB.Connection -> IO a) -> IO a
+withTryLock connectionString tableName m = do
+  conn <- DB.connect connectionString tableName
+  DB.withTryLock tableName conn $ \locked -> do
     unless locked $
       die "couldn't lock the database, migration in progress?"
     m conn
 
-loadAll :: DB.Connection -> FilePath -> IO Migration.Merge.Result
-loadAll conn dir = do
-  migrations <- Migration.loadAll conn
+loadAll :: DB.TableName -> DB.Connection -> FilePath -> IO Migration.Merge.Result
+loadAll table conn dir = do
+  migrations <- Migration.loadAll table conn
   scripts <- Script.listDirectory dir
   pure (Migration.merge migrations scripts)
