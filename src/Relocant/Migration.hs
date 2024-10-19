@@ -20,8 +20,9 @@ import Database.PostgreSQL.Simple.FromRow qualified as DB (RowParser, field)
 import Database.PostgreSQL.Simple.SqlQQ qualified as DB (sql)
 import Prelude hiding (id, readFile)
 
-import Relocant.DB qualified as DB (TableName)
+import Relocant.DB qualified as DB (Table)
 import Relocant.Migration.ID qualified as Migration (ID)
+import Relocant.Migration.Interval qualified as Migration (Interval)
 
 
 data Migration = Migration
@@ -30,6 +31,7 @@ data Migration = Migration
   , bytes     :: ByteString
   , sha1      :: Digest SHA1
   , appliedAt :: At
+  , durationS :: Migration.Interval
   } deriving (Show, Eq)
 
 newtype Name = Name String
@@ -42,7 +44,7 @@ instance Eq At where
   At x == At y =
     zonedTimeToUTC x == zonedTimeToUTC y
 
-loadAll :: DB.TableName -> DB.Connection -> IO [Migration]
+loadAll :: DB.Table -> DB.Connection -> IO [Migration]
 loadAll table conn = do
   DB.queryWith migrationP conn [DB.sql|
     SELECT id
@@ -50,11 +52,12 @@ loadAll table conn = do
          , bytes
          , sha1
          , applied_at
+         , EXTRACT(epoch FROM duration_s) :: INTEGER
       FROM ?
   ORDER BY id
   |] (DB.Only table)
 
-loadByID :: DB.TableName -> Migration.ID -> DB.Connection -> IO (Maybe Migration)
+loadByID :: DB.Table -> Migration.ID -> DB.Connection -> IO (Maybe Migration)
 loadByID table id conn = do
   ms <- DB.queryWith migrationP conn [DB.sql|
     SELECT id
@@ -62,6 +65,7 @@ loadByID table id conn = do
          , bytes
          , sha1
          , applied_at
+         , EXTRACT(epoch FROM duration_s) :: INTEGER
       FROM ?
      WHERE id = ?
   |] (table, id)
@@ -77,4 +81,5 @@ migrationP = do
     Just sha1 =
       digestFromByteString @_ @ByteString bs
   appliedAt <- DB.field
+  durationS <- DB.field
   pure Migration {..}

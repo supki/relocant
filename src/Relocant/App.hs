@@ -12,6 +12,7 @@ import System.Exit (die, exitFailure)
 import Relocant.App.Opts qualified as Opts
 import Relocant.DB qualified as DB
 import Relocant.Migration qualified as Migration
+import Relocant.Migration.Interval (makeInterval_)
 import Relocant.Migration.Merge qualified as Migration (merge)
 import Relocant.Migration.Merge qualified as Migration.Merge
 import Relocant.Script qualified as Script
@@ -34,24 +35,24 @@ run = do
     Opts.Version ->
       putStrLn Meta.version
 
-runUnapplied :: DB.ConnectionString -> DB.TableName -> FilePath -> IO ()
+runUnapplied :: DB.ConnectionString -> DB.Table -> FilePath -> IO ()
 runUnapplied connectionString table dir =
   withTryLock connectionString table $ \conn -> do
     migrations <- loadAll table conn dir
     traverse_ print migrations.unapplied
 
-runApplied :: DB.ConnectionString -> DB.TableName -> IO ()
+runApplied :: DB.ConnectionString -> DB.Table -> IO ()
 runApplied connectionString table = do
   withTryLock connectionString table $ \conn -> do
     migrations <- Migration.loadAll table conn
     traverse_ print migrations
 
-runVerify :: DB.ConnectionString -> DB.TableName -> FilePath -> Bool -> IO ()
+runVerify :: DB.ConnectionString -> DB.Table -> FilePath -> Bool -> IO ()
 runVerify connectionString table dir quiet =
   withTryLock connectionString table $ \conn ->
     verify table conn dir quiet
 
-verify :: DB.TableName -> DB.Connection -> FilePath -> Bool -> IO ()
+verify :: DB.Table -> DB.Connection -> FilePath -> Bool -> IO ()
 verify table conn dir quiet = do
   migrations <- loadAll table conn dir
   unless (Migration.Merge.converged migrations) $ do
@@ -70,7 +71,7 @@ verify table conn dir quiet = do
         traverse_ print migrations.unapplied
     exitFailure
 
-runApply :: DB.ConnectionString -> DB.TableName -> FilePath -> IO ()
+runApply :: DB.ConnectionString -> DB.Table -> FilePath -> IO ()
 runApply connectionString table dir =
   withLock connectionString table $ \conn -> do
     migrations <- loadAll table conn dir
@@ -78,25 +79,25 @@ runApply connectionString table dir =
       exitFailure
     for_ migrations.unapplied $ \script -> do
       DB.withTransaction conn $ do
-        Script.run script conn
-        Script.recordApplied script conn
+        durationS <- makeInterval_ (Script.run script conn)
+        Script.recordApplied table script durationS conn
     verify table conn dir False
 
-withLock :: DB.ConnectionString -> DB.TableName -> (DB.Connection -> IO b) -> IO b
-withLock connectionString tableName m = do
-  conn <- DB.connect connectionString tableName
-  DB.withLock tableName conn $
+withLock :: DB.ConnectionString -> DB.Table -> (DB.Connection -> IO b) -> IO b
+withLock connectionString table m = do
+  conn <- DB.connect connectionString table
+  DB.withLock table conn $
     m conn
 
-withTryLock :: DB.ConnectionString -> DB.TableName -> (DB.Connection -> IO a) -> IO a
-withTryLock connectionString tableName m = do
-  conn <- DB.connect connectionString tableName
-  DB.withTryLock tableName conn $ \locked -> do
+withTryLock :: DB.ConnectionString -> DB.Table -> (DB.Connection -> IO a) -> IO a
+withTryLock connectionString table m = do
+  conn <- DB.connect connectionString table
+  DB.withTryLock table conn $ \locked -> do
     unless locked $
       die "couldn't lock the database, migration in progress?"
     m conn
 
-loadAll :: DB.TableName -> DB.Connection -> FilePath -> IO Migration.Merge.Result
+loadAll :: DB.Table -> DB.Connection -> FilePath -> IO Migration.Merge.Result
 loadAll table conn dir = do
   migrations <- Migration.loadAll table conn
   scripts <- Script.listDirectory dir

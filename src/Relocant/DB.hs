@@ -2,7 +2,7 @@
 {-# LANGUAGE QuasiQuotes #-}
 module Relocant.DB
   ( ConnectionString
-  , TableName
+  , Table
   , connect
   , withLock
   , withTryLock
@@ -23,24 +23,24 @@ import Prelude hiding (init)
 newtype ConnectionString = ConnectionString ByteString
     deriving (Show, Eq, IsString)
 
-newtype TableName = TableName DB.QualifiedIdentifier
+newtype Table = Table DB.QualifiedIdentifier
     deriving (Show, Eq, IsString, DB.ToField)
 
-connect :: ConnectionString -> TableName -> IO DB.Connection
-connect (ConnectionString str) tableName = do
+connect :: ConnectionString -> Table -> IO DB.Connection
+connect (ConnectionString str) table = do
   conn <- DB.connectPostgreSQL str
   _ <- DB.execute_ conn [DB.sql|
     SET client_min_messages TO 'warning'
   |]
-  init conn tableName
+  init conn table
   pure conn
 
-init :: DB.Connection -> TableName -> IO ()
-init conn tableName =
-  ensureMigrationTableExists conn tableName
+init :: DB.Connection -> Table -> IO ()
+init conn table =
+  ensureMigrationTableExists conn table
 
-ensureMigrationTableExists :: DB.Connection -> TableName -> IO ()
-ensureMigrationTableExists conn tableName = do
+ensureMigrationTableExists :: DB.Connection -> Table -> IO ()
+ensureMigrationTableExists conn table = do
   _ <- DB.execute conn [DB.sql|
     CREATE TABLE IF NOT EXISTS ?
     ( id         TEXT NOT NULL
@@ -48,41 +48,42 @@ ensureMigrationTableExists conn tableName = do
     , bytes      BYTEA NOT NULL
     , sha1       BYTEA NOT NULL
     , applied_at TIMESTAMPTZ NOT NULL
+    , duration_s INTERVAL NOT NULL
     , PRIMARY KEY (id)
     )
-  |] (DB.Only tableName)
+  |] (DB.Only table)
   pure ()
 
-withLock :: TableName -> DB.Connection -> IO a -> IO a
-withLock tableName conn m =
-  bracket_ (lock tableName conn) (unlock tableName conn) m
+withLock :: Table -> DB.Connection -> IO a -> IO a
+withLock table conn m =
+  bracket_ (lock table conn) (unlock table conn) m
 
-withTryLock :: TableName -> DB.Connection -> (Bool -> IO a) -> IO a
-withTryLock tableName conn m =
-  bracket (tryLock tableName conn) release m
+withTryLock :: Table -> DB.Connection -> (Bool -> IO a) -> IO a
+withTryLock table conn m =
+  bracket (tryLock table conn) release m
  where
   release locked =
     when locked $ do
-      _ <- unlock tableName conn
+      _ <- unlock table conn
       pure ()
 
-lock :: TableName -> DB.Connection -> IO ()
-lock tableName conn = do
+lock :: Table -> DB.Connection -> IO ()
+lock table conn = do
   [()] <- DB.queryWith DB.field conn [DB.sql|
     SELECT pg_advisory_lock(hashtext('?'))
-  |] (DB.Only tableName)
+  |] (DB.Only table)
   pure ()
 
-tryLock :: TableName -> DB.Connection -> IO Bool
-tryLock tableName conn = do
+tryLock :: Table -> DB.Connection -> IO Bool
+tryLock table conn = do
   [locked] <- DB.queryWith DB.field conn [DB.sql|
     SELECT pg_try_advisory_lock(hashtext('?'))
-  |] (DB.Only tableName)
+  |] (DB.Only table)
   pure locked
 
-unlock :: TableName -> DB.Connection -> IO Bool
-unlock tableName conn = do
+unlock :: Table -> DB.Connection -> IO Bool
+unlock table conn = do
   [unlocked] <- DB.queryWith DB.field conn [DB.sql|
     SELECT pg_advisory_unlock(hashtext('?'))
-  |] (DB.Only tableName)
+  |] (DB.Only table)
   pure unlocked

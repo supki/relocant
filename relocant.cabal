@@ -35,6 +35,7 @@ library
       Relocant.DB
       Relocant.Migration
       Relocant.Migration.ID
+      Relocant.Migration.Interval
       Relocant.Migration.Merge
       Relocant.Script
   other-modules:

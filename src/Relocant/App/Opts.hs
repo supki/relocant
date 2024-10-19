@@ -3,14 +3,14 @@ module Relocant.App.Opts where
 
 import Options.Applicative
 
-import Relocant.DB (ConnectionString, TableName)
+import Relocant.DB (ConnectionString, Table)
 
 
 data Cmd
-  = Unapplied ConnectionString TableName FilePath
-  | Applied ConnectionString TableName
-  | Verify ConnectionString TableName FilePath Bool
-  | Apply ConnectionString TableName FilePath
+  = Unapplied ConnectionString Table FilePath
+  | Applied ConnectionString Table
+  | Verify ConnectionString Table FilePath Bool
+  | Apply ConnectionString Table FilePath
   | Version
     deriving (Show, Eq)
 
@@ -42,35 +42,34 @@ parser =
    -- environment variables ?
    -- --format (text / json)
    -- actual logging
-   -- track execution time
 
 unappliedP :: Parser Cmd
 unappliedP = do
   connectionString <- connectionStringO
-  tableName <- tableNameO
+  table <- tableO
   dir <- directoryO
-  pure (Unapplied connectionString tableName dir)
+  pure (Unapplied connectionString table dir)
 
 appliedP :: Parser Cmd
 appliedP = do
   connectionString <- connectionStringO
-  tableName <- tableNameO
-  pure (Applied connectionString tableName)
+  table <- tableO
+  pure (Applied connectionString table)
 
 verifyP :: Parser Cmd
 verifyP = do
   connectionString <- connectionStringO
-  tableName <- tableNameO
+  table <- tableO
   dir <- directoryO
   quiet <- switch (short 'q' <> long "quiet" <> help "do not output the problems")
-  pure (Verify connectionString tableName dir quiet)
+  pure (Verify connectionString table dir quiet)
 
 applyP :: Parser Cmd
 applyP = do
   connectionString <- connectionStringO
-  tableName <- tableNameO
+  table <- tableO
   dir <- directoryO
-  pure (Apply connectionString tableName dir)
+  pure (Apply connectionString table dir)
 
 versionP :: Parser Cmd
 versionP =
@@ -85,8 +84,8 @@ connectionStringO =
    <> help "PostgreSQL connection string"
     )
 
-tableNameO :: Parser TableName
-tableNameO =
+tableO :: Parser Table
+tableO =
   strOption
     ( short 't'
    <> long "migration-table-name"

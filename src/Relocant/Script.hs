@@ -31,7 +31,9 @@ import Prelude hiding (id, readFile)
 import System.Directory qualified as D
 import System.FilePath ((</>), isExtensionOf, takeBaseName)
 
+import Relocant.DB qualified as DB (Table)
 import Relocant.Migration.ID qualified as Migration (ID)
+import Relocant.Migration.Interval qualified as Migration (Interval)
 
 
 data Script = Script
@@ -99,24 +101,28 @@ run script conn = do
   _ <- DB.execute_ conn (DB.Query script.bytes)
   pure ()
 
-recordApplied :: Script -> DB.Connection -> IO ()
-recordApplied s conn = do
+recordApplied :: DB.Table -> Script -> Migration.Interval -> DB.Connection -> IO ()
+recordApplied table s durationS conn = do
   1 <- DB.execute conn [DB.sql|
-    INSERT INTO migration
+    INSERT INTO ?
               ( id
               , name
               , bytes
               , sha1
               , applied_at
+              , duration_s
               )
          SELECT ?
               , ?
               , ?
               , ?
               , CURRENT_TIMESTAMP
-  |] ( s.id
+              , make_interval(secs := ?)
+  |] ( table
+     , s.id
      , s.name
      , s.bytes
      , DB.Binary (convert @_ @ByteString s.sha1)
+     , durationS
      )
   pure ()
