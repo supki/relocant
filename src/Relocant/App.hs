@@ -6,12 +6,11 @@ module Relocant.App
 
 import Control.Monad (unless)
 import Data.Foldable (for_, traverse_)
-import Database.PostgreSQL.Simple qualified as DB (withTransaction)
-import System.Exit (exitFailure)
+import Database.PostgreSQL.Simple qualified as DB (Connection, withTransaction)
+import System.Exit (die, exitFailure)
 
 import Relocant.App.Opts qualified as Opts
 import Relocant.DB qualified as DB
-import Relocant.Migration (Migration)
 import Relocant.Migration qualified as Migration
 import Relocant.Migration.Merge qualified as Migration (merge)
 import Relocant.Migration.Merge qualified as Migration.Merge
@@ -36,52 +35,69 @@ run = do
       putStrLn Meta.version
 
 runUnapplied :: DB.ConnectionString -> FilePath -> IO ()
-runUnapplied connectionString dir = do
-  migrations <- loadAllAndMergeScripts connectionString dir
-  traverse_ print migrations.unapplied
+runUnapplied connectionString dir =
+  withTryLock connectionString $ \conn -> do
+    migrations <- loadAll conn dir
+    traverse_ print migrations.unapplied
 
 runApplied :: DB.ConnectionString -> IO ()
 runApplied connectionString = do
-  migrations <- loadAll connectionString
-  traverse_ print migrations
+  withTryLock connectionString $ \conn -> do
+    migrations <- Migration.loadAll conn
+    traverse_ print migrations
 
 runVerify :: DB.ConnectionString -> FilePath -> Bool -> IO ()
-runVerify connectionString dir quiet = do
-  migrations <- loadAllAndMergeScripts connectionString dir
+runVerify connectionString dir quiet =
+  withTryLock connectionString $ \conn ->
+    verify conn dir quiet
+
+verify :: DB.Connection -> FilePath -> Bool -> IO ()
+verify conn dir quiet = do
+  migrations <- loadAll conn dir
   unless (Migration.Merge.converged migrations) $ do
     unless quiet $ do
-      putStrLn "unrecorded:"
-      traverse_ print migrations.unrecorded
-      putStrLn "script missing:"
-      traverse_ print migrations.scriptMissing
-      putStrLn "content mismatch:"
-      traverse_ print migrations.contentMismatch
-      putStrLn "unapplied:"
-      traverse_ print migrations.unapplied
+      unless (null migrations.unrecorded) $ do
+        putStrLn "unrecorded:"
+        traverse_ print migrations.unrecorded
+      unless (null migrations.scriptMissing) $ do
+        putStrLn "script missing:"
+        traverse_ print migrations.scriptMissing
+      unless (null migrations.contentMismatch) $ do
+        putStrLn "content mismatch:"
+        traverse_ print migrations.contentMismatch
+      unless (null migrations.unapplied) $ do
+        putStrLn "unapplied:"
+        traverse_ print migrations.unapplied
     exitFailure
 
 runApply :: DB.ConnectionString -> FilePath -> IO ()
-runApply connectionString dir = do
-  migrations <- loadAllAndMergeScripts connectionString dir
-  unless (Migration.Merge.ready migrations)
-    exitFailure
-  for_ migrations.unapplied $ \migration -> do
-    conn <- DB.connect connectionString
-    DB.init conn
-    DB.withTransaction conn $ do
-      Script.run migration conn
-      Script.recordApplied migration conn
-  runVerify connectionString dir False
+runApply connectionString dir =
+  withLock connectionString $ \conn -> do
+    migrations <- loadAll conn dir
+    unless (Migration.Merge.ready migrations)
+      exitFailure
+    for_ migrations.unapplied $ \migration -> do
+      DB.withTransaction conn $ do
+        Script.run migration conn
+        Script.recordApplied migration conn
+    verify conn dir False
 
-loadAll :: DB.ConnectionString -> IO [Migration]
-loadAll connectionString = do
+withLock :: DB.ConnectionString -> (DB.Connection -> IO b) -> IO b
+withLock connectionString m = do
   conn <- DB.connect connectionString
-  DB.init conn
-  Migration.loadAll conn
+  DB.withLock conn $
+    m conn
 
--- FIXME: there has to be a better name for this function
-loadAllAndMergeScripts :: DB.ConnectionString -> FilePath -> IO Migration.Merge.Result
-loadAllAndMergeScripts connectionString dir = do
-  migrations <- loadAll connectionString
+withTryLock :: DB.ConnectionString -> (DB.Connection -> IO a) -> IO a
+withTryLock connectionString m = do
+  conn <- DB.connect connectionString
+  DB.withTryLock conn $ \locked -> do
+    unless locked $
+      die "couldn't lock the database, migration in progress?"
+    m conn
+
+loadAll :: DB.Connection -> FilePath -> IO Migration.Merge.Result
+loadAll conn dir = do
+  migrations <- Migration.loadAll conn
   scripts <- Script.listDirectory dir
   pure (Migration.merge migrations scripts)
