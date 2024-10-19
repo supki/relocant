@@ -1,18 +1,24 @@
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE QuasiQuotes #-}
 module Relocant.DB
-  ( connect
+  ( ConnectionString
+  , connect
   , init
   ) where
 
 import Data.ByteString (ByteString)
+import Data.String (IsString)
 import Database.PostgreSQL.Simple qualified as DB
 import Database.PostgreSQL.Simple.SqlQQ qualified as DB (sql)
 import Prelude hiding (init)
 
 
-connect :: ByteString -> IO DB.Connection
-connect connectionString = do
-  conn <- DB.connectPostgreSQL connectionString
+newtype ConnectionString = ConnectionString ByteString
+    deriving (Show, Eq, IsString)
+
+connect :: ConnectionString -> IO DB.Connection
+connect (ConnectionString str) = do
+  conn <- DB.connectPostgreSQL str
   _ <- DB.execute_ conn [DB.sql|
     SET client_min_messages TO 'warning'
   |]

@@ -3,6 +3,7 @@
 module Relocant.Migration.Merge
   ( Result(..)
   , merge
+  , ready
   , converged
   ) where
 
@@ -25,6 +26,11 @@ data Result = Result
     -- ^ an unapplied script that has a higher ID than any
     -- recorded migration
   } deriving (Show, Eq)
+
+ready :: Result -> Bool
+ready = \case
+  Result {unrecorded = [], scriptMissing = [], contentMismatch = []} -> True
+  _ -> False
 
 converged :: Result -> Bool
 converged = \case

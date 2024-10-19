@@ -11,6 +11,7 @@ module Relocant.Script
   , Content
   , listDirectory
   , readFile
+  , run
   , recordApplied
   ) where
 
@@ -24,6 +25,7 @@ import Data.String (fromString)
 import Database.PostgreSQL.Simple qualified as DB
 import Database.PostgreSQL.Simple.ToField qualified as DB (ToField)
 import Database.PostgreSQL.Simple.SqlQQ qualified as DB (sql)
+import Database.PostgreSQL.Simple.Types qualified as DB (Query(..))
 import GHC.Records (HasField(getField))
 import Prelude hiding (id, readFile)
 import System.Directory qualified as D
@@ -92,8 +94,13 @@ parseFilePath path = do
       span Char.isAlphaNum basename
   (fromString id, Name basename)
 
+run :: Script -> DB.Connection -> IO ()
+run script conn = do
+  _ <- DB.execute_ conn (DB.Query script.bytes)
+  pure ()
+
 recordApplied :: Script -> DB.Connection -> IO ()
-recordApplied m conn = do
+recordApplied s conn = do
   1 <- DB.execute conn [DB.sql|
     INSERT INTO migration
               ( id
@@ -107,9 +114,9 @@ recordApplied m conn = do
               , ?
               , ?
               , CURRENT_TIMESTAMP
-  |] ( m.id
-     , m.name
-     , m.bytes
-     , DB.Binary (convert @_ @ByteString m.sha1)
+  |] ( s.id
+     , s.name
+     , s.bytes
+     , DB.Binary (convert @_ @ByteString s.sha1)
      )
   pure ()

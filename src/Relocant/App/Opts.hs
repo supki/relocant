@@ -1,14 +1,16 @@
 {-# LANGUAGE ApplicativeDo #-}
 module Relocant.App.Opts where
 
-import Data.ByteString (ByteString)
 import Options.Applicative
+
+import Relocant.DB (ConnectionString)
 
 
 data Cmd
-  = Unapplied ByteString FilePath
-  | Applied ByteString
-  | Verify ByteString FilePath
+  = Unapplied ConnectionString FilePath
+  | Applied ConnectionString
+  | Verify ConnectionString FilePath Bool
+  | Apply ConnectionString FilePath
   | Version
     deriving (Show, Eq)
 
@@ -28,6 +30,8 @@ parser =
       (info appliedP (progDesc "list applied migrations"))
    <> command "verify"
       (info verifyP (progDesc "verify that all migrations that are supposed to be applied are and those that aren't aren't"))
+   <> command "apply"
+      (info applyP (progDesc "apply the unapplied migrations"))
    <> command "version"
       (info versionP (progDesc "see library's version"))
     )
@@ -38,7 +42,7 @@ parser =
    -- command "mark-unapplied (specific migration)" ?
    -- --table-name (e.g., 'public.migration')
    -- environment variables ?
-   -- --format
+   -- --format (text / json)
 
 unappliedP :: Parser Cmd
 unappliedP = do
@@ -55,16 +59,33 @@ verifyP :: Parser Cmd
 verifyP = do
   connectionString <- connectionStringO
   dir <- directoryO
-  pure (Verify connectionString dir)
+  quiet <- switch (short 'q' <> long "quiet" <> help "do not output the problems")
+  pure (Verify connectionString dir quiet)
+
+applyP :: Parser Cmd
+applyP = do
+  connectionString <- connectionStringO
+  dir <- directoryO
+  pure (Apply connectionString dir)
 
 versionP :: Parser Cmd
 versionP =
   pure Version
 
-connectionStringO :: Parser ByteString
+connectionStringO :: Parser ConnectionString
 connectionStringO =
-  strOption (short 'c' <> long "connection-string" <> help "PostgreSQL connection string")
+  strOption
+    ( short 'c'
+   <> long "connection-string"
+   <> metavar "CONNECTION_STRING"
+   <> help "PostgreSQL connection string"
+    )
 
 directoryO :: Parser String
 directoryO =
-  strOption (short 'd' <> long "directory" <> help "Directory containing .sql scripts")
+  strOption
+    ( short 'd'
+   <> long "directory"
+   <> metavar "PATH"
+   <> help "Directory containing .sql scripts"
+    )
