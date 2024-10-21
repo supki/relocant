@@ -69,7 +69,13 @@ tests:
   spec:
     dependencies:
       - relocant
+      - bytestring
+      - crypton
+      - filepath
       - hspec
+      - postgresql-simple
+      - random
+      - temporary
     source-dirs:
       test
     main:

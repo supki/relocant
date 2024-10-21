@@ -6,11 +6,12 @@
 {-# LANGUAGE TypeApplications #-}
 module Relocant.Script
   ( Script(..)
-  , ID
   , Name
-  , Content
+  , Content(..)
   , listDirectory
   , readFile
+  , parseFilePath
+  , readContent
   , run
   , recordApplied
   ) where
@@ -34,11 +35,12 @@ import System.FilePath ((</>), isExtensionOf, takeBaseName)
 import Relocant.DB qualified as DB (Table)
 import Relocant.Migration.ID qualified as Migration (ID)
 import Relocant.Migration.Interval qualified as Migration (Interval)
+import Relocant.Migration.Name qualified as Migration (Name)
 
 
 data Script = Script
   { id      :: Migration.ID
-  , name    :: Name
+  , name    :: Migration.Name
   , content :: Content
   } deriving (Show, Eq)
 
@@ -49,9 +51,6 @@ instance HasField "bytes" Script ByteString where
 instance HasField "sha1" Script (Digest SHA1) where
   getField m =
     m.content.sha1
-
-newtype ID = ID String
-    deriving (Show, Eq, Ord, DB.ToField)
 
 newtype Name = Name String
     deriving (Show, Eq, DB.ToField)
@@ -87,14 +86,14 @@ readContent path = do
     , sha1 = hash bytes
     }
 
-parseFilePath :: FilePath -> (Migration.ID, Name)
+parseFilePath :: FilePath -> (Migration.ID, Migration.Name)
 parseFilePath path = do
   let
     basename =
       takeBaseName path
     (id, _rest) =
       span Char.isAlphaNum basename
-  (fromString id, Name basename)
+  (fromString id, fromString basename)
 
 run :: Script -> DB.Connection -> IO ()
 run script conn = do

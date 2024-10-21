@@ -3,7 +3,7 @@ module Relocant.App.Opts where
 
 import Options.Applicative
 
-import Relocant.DB (ConnectionString, Table)
+import Relocant.DB (ConnectionString, Table, defaultTable)
 
 
 data Cmd
@@ -90,7 +90,7 @@ tableO =
     ( short 't'
    <> long "migration-table-name"
    <> metavar "IDENTIFIER"
-   <> value "public.relocant_migration"
+   <> value defaultTable
    <> showDefault
    <> help "Table containing recorded migrations"
     )

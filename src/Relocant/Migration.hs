@@ -22,20 +22,18 @@ import Prelude hiding (id, readFile)
 
 import Relocant.DB qualified as DB (Table)
 import Relocant.Migration.ID qualified as Migration (ID)
+import Relocant.Migration.Name qualified as Migration (Name)
 import Relocant.Migration.Interval qualified as Migration (Interval)
 
 
 data Migration = Migration
   { id        :: Migration.ID
-  , name      :: Name
+  , name      :: Migration.Name
   , bytes     :: ByteString
   , sha1      :: Digest SHA1
   , appliedAt :: At
   , durationS :: Migration.Interval
   } deriving (Show, Eq)
-
-newtype Name = Name String
-    deriving (Show, Eq, DB.FromField)
 
 newtype At = At ZonedTime
     deriving (Show, DB.FromField)

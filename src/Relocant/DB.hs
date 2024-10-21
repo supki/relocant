@@ -3,7 +3,9 @@
 module Relocant.DB
   ( ConnectionString
   , Table
+  , defaultTable
   , connect
+  , init
   , withLock
   , withTryLock
   ) where
@@ -15,29 +17,31 @@ import Data.String (IsString)
 import Database.PostgreSQL.Simple qualified as DB
 import Database.PostgreSQL.Simple.FromRow qualified as DB (field)
 import Database.PostgreSQL.Simple.SqlQQ qualified as DB (sql)
-import Database.PostgreSQL.Simple.ToField qualified as DB (ToField)
-import Database.PostgreSQL.Simple.Types qualified as DB (QualifiedIdentifier)
 import Prelude hiding (init)
+
+import Relocant.DB.Table (Table, defaultTable)
 
 
 newtype ConnectionString = ConnectionString ByteString
     deriving (Show, Eq, IsString)
 
-newtype Table = Table DB.QualifiedIdentifier
-    deriving (Show, Eq, IsString, DB.ToField)
-
 connect :: ConnectionString -> Table -> IO DB.Connection
 connect (ConnectionString str) table = do
   conn <- DB.connectPostgreSQL str
-  _ <- DB.execute_ conn [DB.sql|
-    SET client_min_messages TO 'warning'
-  |]
   init conn table
   pure conn
 
 init :: DB.Connection -> Table -> IO ()
-init conn table =
+init conn table = do
+  setLessVerboseLogging conn
   ensureMigrationTableExists conn table
+
+setLessVerboseLogging :: DB.Connection -> IO ()
+setLessVerboseLogging conn = do
+  _ <- DB.execute_ conn [DB.sql|
+    SET client_min_messages TO 'warning'
+  |]
+  pure ()
 
 ensureMigrationTableExists :: DB.Connection -> Table -> IO ()
 ensureMigrationTableExists conn table = do

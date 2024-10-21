@@ -1,25 +1,33 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE TypeApplications #-}
 module Relocant.Migration.Interval
-  ( Interval
+  ( Interval(..)
   , makeInterval
   , makeInterval_
   ) where
 
 import Data.Time
-  ( getCurrentTime
+  ( NominalDiffTime
+  , getCurrentTime
   , diffUTCTime
   )
-import Database.PostgreSQL.Simple.FromField qualified as DB (FromField)
-import Database.PostgreSQL.Simple.ToField qualified as DB (ToField)
+import Database.PostgreSQL.Simple.FromField qualified as DB (FromField(..))
+import Database.PostgreSQL.Simple.ToField qualified as DB (ToField(..))
 
 
-newtype Interval = Interval Int
+newtype Interval = Interval NominalDiffTime
     deriving
       ( Show
       , Eq
-      , DB.FromField
-      , DB.ToField
       )
+
+instance DB.FromField Interval where
+  fromField conv f =
+    fmap (Interval . fromIntegral @Int) (DB.fromField conv f)
+
+instance DB.ToField Interval where
+  toField (Interval s) =
+    DB.toField @Int (truncate s)
 
 makeInterval_:: IO x -> IO Interval
 makeInterval_ m = do
@@ -31,4 +39,4 @@ makeInterval m = do
   t0 <- getCurrentTime
   a <- m
   t1 <- getCurrentTime
-  pure (Interval (truncate (t1 `diffUTCTime` t0)), a)
+  pure (Interval (t1 `diffUTCTime` t0), a)

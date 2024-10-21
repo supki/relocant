@@ -1,6 +1,7 @@
 module Cfg
   ( Cfg(..)
   , get
+  , Meta.name
   , Meta.version
   ) where
 
