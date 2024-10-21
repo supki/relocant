@@ -1,7 +1,8 @@
 module Relocant.Migration.IntervalSpec (spec) where
 
-import Relocant.Migration.Interval (Interval(..), makeInterval)
 import Test.Hspec
+
+import Relocant.Migration.Interval (Interval(..), makeInterval)
 
 
 spec :: Spec

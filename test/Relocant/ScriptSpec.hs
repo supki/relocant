@@ -3,8 +3,6 @@
 {-# LANGUAGE TypeApplications #-}
 module Relocant.ScriptSpec (spec) where
 
-import "crypton" Crypto.Hash (SHA1, hash)
-import Data.ByteString (ByteString)
 import Prelude hiding (id)
 import System.FilePath ((</>))
 import System.IO.Temp
@@ -14,7 +12,6 @@ import Relocant.Migration qualified as Migration
 import Relocant.Migration.Interval (makeInterval_)
 import Relocant.Script
   ( Script(..)
-  , Content(..)
   , parseFilePath
   , readContent
   , listDirectory
@@ -54,8 +51,7 @@ spec = do
           path =
             tmpDir </> "a"
         writeFile path "abc"
-        readContent path `shouldReturn`
-          Content {bytes = "abc", sha1 = hash @ByteString @SHA1 "abc"}
+        readContent path `shouldReturn` "abc"
 
   describe "readFile" $ do
     it "combines parseFilePath and readContent" $
@@ -68,7 +64,7 @@ spec = do
           Script
             { id = "0001"
             , name = "0001-migration-name"
-            , content = Content {bytes = "abc", sha1 = hash @ByteString @SHA1 "abc"}
+            , content = "abc"
             }
 
   describe "listDirectory" $
@@ -84,17 +80,17 @@ spec = do
           [ Script
             { id = "00"
             , name = "00-oops"
-            , content = Content {bytes = "oops", sha1 = hash @ByteString @SHA1 "oops"}
+            , content = "oops"
             }
           , Script
             { id = "01"
             , name = "01-abc"
-            , content = Content {bytes = "abc", sha1 = hash @ByteString @SHA1 "abc"}
+            , content = "abc"
             }
           , Script
             { id = "02"
             , name = "02-def"
-            , content = Content {bytes = "def", sha1 = hash @ByteString @SHA1 "def"}
+            , content = "def"
             }
           ]
 
@@ -107,23 +103,17 @@ spec = do
               script = Script
                 { id = "00"
                 , name = "00-oops"
-                , content = Content
-                  { bytes = "CREATE TABLE foo ()"
-                  , sha1 = hash @ByteString @SHA1 "CREATE TABLE foo ()"
-                  }
+                , content = "CREATE TABLE foo ()"
                 }
             run script conn
 
-        describe "record-applied" $
-          it "runs a migration script" $ \conn -> do
+        describe "recordApplied" $
+          it "stores the script in the DB" $ \conn -> do
             let
               script = Script
                 { id = "00"
                 , name = "00-oops"
-                , content = Content
-                  { bytes = "CREATE TABLE foo ()"
-                  , sha1 = hash @ByteString @SHA1 "CREATE TABLE foo ()"
-                  }
+                , content = "CREATE TABLE foo ()"
                 }
             durationS <- makeInterval_ (pure ())
             recordApplied DB.defaultTable script durationS conn

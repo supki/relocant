@@ -55,8 +55,8 @@ loadAll table conn = do
   ORDER BY id
   |] (DB.Only table)
 
-loadByID :: DB.Table -> Migration.ID -> DB.Connection -> IO (Maybe Migration)
-loadByID table id conn = do
+loadByID :: Migration.ID -> DB.Table -> DB.Connection -> IO (Maybe Migration)
+loadByID id table conn = do
   ms <- DB.queryWith migrationP conn [DB.sql|
     SELECT id
          , name

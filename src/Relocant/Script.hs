@@ -22,7 +22,7 @@ import Data.ByteString (ByteString)
 import Data.ByteString qualified as ByteString
 import Data.Char qualified as Char
 import Data.List qualified as List
-import Data.String (fromString)
+import Data.String (IsString(..))
 import Database.PostgreSQL.Simple qualified as DB
 import Database.PostgreSQL.Simple.ToField qualified as DB (ToField)
 import Database.PostgreSQL.Simple.SqlQQ qualified as DB (sql)
@@ -59,6 +59,12 @@ data Content = Content
   { bytes :: ByteString
   , sha1  :: Digest SHA1
   } deriving (Show, Eq)
+
+instance IsString Content where
+  fromString str = Content
+    { bytes = fromString str
+    , sha1 = hash @ByteString @SHA1 (fromString str)
+    }
 
 listDirectory :: FilePath -> IO [Script]
 listDirectory dir = do

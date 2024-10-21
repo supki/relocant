@@ -70,7 +70,6 @@ tests:
     dependencies:
       - relocant
       - bytestring
-      - crypton
       - filepath
       - hspec
       - postgresql-simple

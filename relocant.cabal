@@ -28,7 +28,6 @@ custom-setup
 
 library
   exposed-modules:
-      App
       Cfg
       Relocant.App
       Relocant.App.Opts
@@ -88,6 +87,7 @@ test-suite spec
   main-is: Spec.hs
   other-modules:
       Relocant.Migration.IntervalSpec
+      Relocant.MigrationSpec
       Relocant.ScriptSpec
       SpecHelper.DB
       Paths_relocant
@@ -103,7 +103,6 @@ test-suite spec
   build-depends:
       base >=4.7 && <5
     , bytestring
-    , crypton
     , filepath
     , hspec
     , postgresql-simple

@@ -36,11 +36,11 @@ parser =
       (info versionP (progDesc "see library's version"))
     )
    -- command "dump-schema (as initial migration)"
-   -- --with-content
    -- command "mark-applied (specific script)" ?
    -- command "mark-unapplied (specific migration)" ?
    -- environment variables ?
    -- --format (text / json)
+   -- --with-content
    -- actual logging
 
 unappliedP :: Parser Cmd
