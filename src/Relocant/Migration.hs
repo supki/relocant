@@ -6,8 +6,11 @@
 {-# LANGUAGE ViewPatterns #-}
 module Relocant.Migration
   ( Migration(..)
+  , Migration.ID
   , loadAll
   , loadByID
+  , deleteAll
+  , deleteByID
   ) where
 
 import "crypton" Crypto.Hash (Digest, SHA1, digestFromByteString)
@@ -68,6 +71,21 @@ loadByID id table conn = do
      WHERE id = ?
   |] (table, id)
   pure (listToMaybe ms)
+
+deleteAll :: DB.Table -> DB.Connection -> IO ()
+deleteAll table conn = do
+  _rows <- DB.execute conn [DB.sql|
+    TRUNCATE ?
+  |] (DB.Only table)
+  pure ()
+
+deleteByID :: Migration.ID -> DB.Table -> DB.Connection -> IO Bool
+deleteByID id table conn = do
+  rows <- DB.execute conn [DB.sql|
+    DELETE FROM ?
+          WHERE id = ?
+  |] (table, id)
+  pure (rows > 0)
 
 migrationP :: DB.RowParser Migration
 migrationP = do

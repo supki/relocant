@@ -7,6 +7,7 @@ module Relocant.App
 import Control.Monad (unless)
 import Data.Foldable (for_, traverse_)
 import Database.PostgreSQL.Simple qualified as DB (Connection, withTransaction)
+import Prelude hiding (id)
 import System.Exit (die, exitFailure)
 
 import Relocant.App.Opts qualified as Opts
@@ -34,6 +35,12 @@ run = do
       runApply connectionString table dir
     Opts.Version ->
       putStrLn Meta.version
+    Opts.MarkApplied _connectionString _table _file ->
+      error "mark-applied"
+    Opts.Delete connectionString table id ->
+      runDelete connectionString table id
+    Opts.DeleteAll connectionString table ->
+      runDeleteAll connectionString table
 
 runUnapplied :: DB.ConnectionString -> DB.Table -> FilePath -> IO ()
 runUnapplied connectionString table dir =
@@ -82,6 +89,17 @@ runApply connectionString table dir =
         durationS <- makeInterval_ (Script.run script conn)
         Script.recordApplied table script durationS conn
     verify table conn dir False
+
+runDelete :: DB.ConnectionString -> DB.Table -> Migration.ID -> IO ()
+runDelete connectionString table id =
+  withTryLock connectionString table $ \conn -> do
+    deleted <- Migration.deleteByID id table conn
+    unless deleted exitFailure
+
+runDeleteAll :: DB.ConnectionString -> DB.Table -> IO ()
+runDeleteAll connectionString table =
+  withTryLock connectionString table $ \conn -> do
+    Migration.deleteAll table conn
 
 withLock :: DB.ConnectionString -> DB.Table -> (DB.Connection -> IO b) -> IO b
 withLock connectionString table m = do
