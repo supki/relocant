@@ -43,7 +43,6 @@ parser =
       (info internalP (progDesc "internal subcomamnds"))
     )
    -- command "dump-schema (as initial migration)"
-   -- command "internal-apply (specific script)" ?
    -- environment variables ?
    -- --format (text / json)
    -- --with-content

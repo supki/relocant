@@ -94,30 +94,29 @@ spec = do
             }
           ]
 
-  describe "db-backed" $
-    beforeAll DB.createTemplate $ do
-      around DB.withTemplateCloned $ do
-        describe "run" $
-          it "runs a migration script" $ \conn -> do
-            let
-              script = Script
-                { id = "00"
-                , name = "00-oops"
-                , content = "CREATE TABLE foo ()"
-                }
-            run script conn
+  beforeAll DB.createTemplate $ do
+    around DB.withTemplateCloned $ do
+      describe "run" $
+        it "runs a migration script" $ \conn -> do
+          let
+            script = Script
+              { id = "00"
+              , name = "00-oops"
+              , content = "CREATE TABLE foo ()"
+              }
+          run script conn
 
-        describe "recordApplied" $
-          it "stores the script in the DB" $ \conn -> do
-            let
-              script = Script
-                { id = "00"
-                , name = "00-oops"
-                , content = "CREATE TABLE foo ()"
-                }
-            durationS <- makeInterval_ (pure ())
-            recordApplied DB.defaultTable script durationS conn
-            [m] <- Migration.loadAll DB.defaultTable conn
-            m.id `shouldBe` "00"
-            m.bytes `shouldBe` "CREATE TABLE foo ()"
+      describe "recordApplied" $
+        it "stores the script in the DB" $ \conn -> do
+          let
+            script = Script
+              { id = "00"
+              , name = "00-oops"
+              , content = "CREATE TABLE foo ()"
+              }
+          durationS <- makeInterval_ (pure ())
+          recordApplied DB.defaultTable script durationS conn
+          [m] <- Migration.loadAll DB.defaultTable conn
+          m.id `shouldBe` "00"
+          m.bytes `shouldBe` "CREATE TABLE foo ()"
 

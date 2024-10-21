@@ -35,8 +35,8 @@ run = do
       runApply connectionString table dir
     Opts.Version ->
       putStrLn Meta.version
-    Opts.MarkApplied _connectionString _table _file ->
-      error "mark-applied"
+    Opts.MarkApplied connectionString table file ->
+      runMarkApplied connectionString table file
     Opts.Delete connectionString table id ->
       runDelete connectionString table id
     Opts.DeleteAll connectionString table ->
@@ -89,6 +89,15 @@ runApply connectionString table dir =
         durationS <- makeInterval_ (Script.run script conn)
         Script.recordApplied table script durationS conn
     verify table conn dir False
+
+runMarkApplied :: DB.ConnectionString -> DB.Table -> FilePath -> IO ()
+runMarkApplied connectionString table path =
+  withTryLock connectionString table $ \conn -> do
+    script <- Script.readFile path
+    durationS <- makeInterval_ (pure ())
+    DB.withTransaction conn $ do
+      _deleted <- Migration.deleteByID script.id table conn
+      Script.recordApplied table script durationS conn
 
 runDelete :: DB.ConnectionString -> DB.Table -> Migration.ID -> IO ()
 runDelete connectionString table id =
