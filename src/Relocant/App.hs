@@ -1,3 +1,5 @@
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
 module Relocant.App
@@ -7,6 +9,7 @@ module Relocant.App
 import Control.Monad (unless)
 import Data.Foldable (for_, traverse_)
 import Database.PostgreSQL.Simple qualified as DB (Connection, withTransaction)
+import GHC.Records (HasField)
 import Prelude hiding (id)
 import System.Exit (die, exitFailure)
 
@@ -18,50 +21,56 @@ import Relocant.Migration.Merge qualified as Migration (merge)
 import Relocant.Migration.Merge qualified as Migration.Merge
 import Relocant.Script qualified as Script
 
-import qualified Meta_relocant as Meta
 
+-- environment variables ?
+-- --format (tsv / json)
+-- --with-content? we probably want to have separate commands for looking into a specific script/migration
+--   unapplied --id ?
+--   applied --id ?
+-- actual logging
+-- rethink duration_s
 
 run :: IO ()
 run = do
   cmd <- Opts.parse
   case cmd of
-    Opts.Unapplied connectionString table dir ->
-      runUnapplied connectionString table dir
-    Opts.Applied connectionString table ->
-      runApplied connectionString table
-    Opts.Verify connectionString table dir quiet ->
-      runVerify connectionString table dir quiet
-    Opts.Apply connectionString table dir ->
-      runApply connectionString table dir
-    Opts.Version ->
-      putStrLn Meta.version
+    Opts.Unapplied opts ->
+      runUnapplied opts
+    Opts.Applied opts ->
+      runApplied opts
+    Opts.Verify opts ->
+      runVerify opts
+    Opts.Apply opts ->
+      runApply opts
+    Opts.Version version ->
+      putStrLn version
     Opts.Internal internalCmd ->
       case internalCmd of
-        Opts.DumpSchema connectionString ->
-          runDumpSchema connectionString
-        Opts.MarkApplied connectionString table file ->
-          runMarkApplied connectionString table file
-        Opts.Delete connectionString table id ->
-          runDelete connectionString table id
-        Opts.DeleteAll connectionString table ->
-          runDeleteAll connectionString table
+        Opts.DumpSchema opts ->
+          runDumpSchema opts
+        Opts.MarkApplied opts ->
+          runMarkApplied opts
+        Opts.Delete opts ->
+          runDelete opts
+        Opts.DeleteAll opts ->
+          runDeleteAll opts
 
-runUnapplied :: DB.ConnectionString -> DB.Table -> FilePath -> IO ()
-runUnapplied connectionString table dir =
-  withTryLock connectionString table $ \conn -> do
-    migrations <- loadAll table conn dir
+runUnapplied :: Opts.Unapplied -> IO ()
+runUnapplied opts =
+  withTryLock opts $ \conn -> do
+    migrations <- loadAll opts.table conn opts.scripts
     traverse_ print migrations.unapplied
 
-runApplied :: DB.ConnectionString -> DB.Table -> IO ()
-runApplied connectionString table = do
-  withTryLock connectionString table $ \conn -> do
-    migrations <- Migration.loadAll table conn
+runApplied :: Opts.Applied -> IO ()
+runApplied opts = do
+  withTryLock opts $ \conn -> do
+    migrations <- Migration.loadAll opts.table conn
     traverse_ print migrations
 
-runVerify :: DB.ConnectionString -> DB.Table -> FilePath -> Bool -> IO ()
-runVerify connectionString table dir quiet =
-  withTryLock connectionString table $ \conn ->
-    verify table conn dir quiet
+runVerify :: Opts.Verify -> IO ()
+runVerify opts =
+  withTryLock opts $ \conn ->
+    verify opts.table conn opts.scripts opts.quiet
 
 verify :: DB.Table -> DB.Connection -> FilePath -> Bool -> IO ()
 verify table conn dir quiet = do
@@ -82,52 +91,59 @@ verify table conn dir quiet = do
         traverse_ print migrations.unapplied
     exitFailure
 
-runApply :: DB.ConnectionString -> DB.Table -> FilePath -> IO ()
-runApply connectionString table dir =
-  withLock connectionString table $ \conn -> do
-    migrations <- loadAll table conn dir
+runApply :: Opts.Apply -> IO ()
+runApply opts =
+  withLock opts $ \conn -> do
+    migrations <- loadAll opts.table conn opts.scripts
     unless (Migration.Merge.ready migrations)
       exitFailure
     for_ migrations.unapplied $ \script -> do
       DB.withTransaction conn $ do
         durationS <- makeInterval_ (Script.run script conn)
-        Script.recordApplied table script durationS conn
-    verify table conn dir False
+        Script.recordApplied opts.table script durationS conn
+    verify opts.table conn opts.scripts False
 
-runDumpSchema :: DB.ConnectionString -> IO ()
-runDumpSchema _connectionString =
+runDumpSchema :: Opts.DumpSchema -> IO ()
+runDumpSchema _opts =
   DB.dumpSchema
 
-runMarkApplied :: DB.ConnectionString -> DB.Table -> FilePath -> IO ()
-runMarkApplied connectionString table path =
-  withTryLock connectionString table $ \conn -> do
-    script <- Script.readFile path
+runMarkApplied :: Opts.MarkApplied -> IO ()
+runMarkApplied opts =
+  withTryLock opts $ \conn -> do
+    script <- Script.readFile opts.script
     durationS <- makeInterval_ (pure ())
     DB.withTransaction conn $ do
-      _deleted <- Migration.deleteByID script.id table conn
-      Script.recordApplied table script durationS conn
+      _deleted <- Migration.deleteByID script.id opts.table conn
+      Script.recordApplied opts.table script durationS conn
 
-runDelete :: DB.ConnectionString -> DB.Table -> Migration.ID -> IO ()
-runDelete connectionString table id =
-  withTryLock connectionString table $ \conn -> do
-    deleted <- Migration.deleteByID id table conn
+runDelete :: Opts.Delete -> IO ()
+runDelete opts =
+  withTryLock opts $ \conn -> do
+    deleted <- Migration.deleteByID opts.id opts.table conn
     unless deleted exitFailure
 
-runDeleteAll :: DB.ConnectionString -> DB.Table -> IO ()
-runDeleteAll connectionString table =
-  withTryLock connectionString table $ \conn -> do
-    Migration.deleteAll table conn
+runDeleteAll :: Opts.DeleteAll -> IO ()
+runDeleteAll opts =
+  withTryLock opts $ \conn -> do
+    Migration.deleteAll opts.table conn
 
-withLock :: DB.ConnectionString -> DB.Table -> (DB.Connection -> IO b) -> IO b
-withLock connectionString table m = do
-  conn <- DB.connect connectionString table
-  DB.withLock table conn $
+withLock
+  :: (HasField "table" cfg DB.Table, HasField "connString" cfg DB.ConnectionString)
+  => cfg
+  -> (DB.Connection -> IO b)
+  -> IO b
+withLock cfg m = do
+  conn <- DB.connect cfg.connString cfg.table
+  DB.withLock cfg.table conn $
     m conn
 
-withTryLock :: DB.ConnectionString -> DB.Table -> (DB.Connection -> IO a) -> IO a
-withTryLock connectionString table m = do
-  conn <- DB.connect connectionString table
-  DB.withTryLock table conn $ \locked -> do
+withTryLock
+  :: (HasField "table" cfg DB.Table, HasField "connString" cfg DB.ConnectionString)
+  => cfg
+  -> (DB.Connection -> IO b) -> IO b
+withTryLock cfg m = do
+  conn <- DB.connect cfg.connString cfg.table
+  DB.withTryLock cfg.table conn $ \locked -> do
     unless locked $
       die "couldn't lock the database, migration in progress?"
     m conn
