@@ -1,11 +1,17 @@
 {-# LANGUAGE ApplicativeDo #-}
-module Relocant.App.Opts where
+module Relocant.App.Opts
+  ( Cmd(..)
+  , InternalCmd(..)
+  , parse
+  ) where
 
 import Options.Applicative
 import Prelude hiding (id)
 
-import Relocant.DB (ConnectionString, Table, defaultTable)
-import Relocant.Migration qualified as Migration
+import Relocant.DB (ConnectionString, Table)
+import Relocant.App.Opts.Option qualified as O
+import Relocant.App.Opts.Internal (InternalCmd(..))
+import Relocant.App.Opts.Internal qualified as Internal (parser)
 
 
 data Cmd
@@ -14,9 +20,7 @@ data Cmd
   | Verify ConnectionString Table FilePath Bool
   | Apply ConnectionString Table FilePath
   | Version
-  | MarkApplied ConnectionString Table FilePath
-  | Delete ConnectionString Table Migration.ID
-  | DeleteAll ConnectionString Table
+  | Internal InternalCmd
     deriving (Show, Eq)
 
 parse :: IO Cmd
@@ -42,7 +46,6 @@ parser =
    <> command "internal"
       (info internalP (progDesc "internal subcomamnds"))
     )
-   -- command "dump-schema (as initial migration)"
    -- environment variables ?
    -- --format (text / json)
    -- --with-content
@@ -50,30 +53,30 @@ parser =
 
 unappliedP :: Parser Cmd
 unappliedP = do
-  connectionString <- connectionStringO
-  table <- tableO
-  dir <- directoryO
+  connectionString <- O.connectionString
+  table <- O.table
+  dir <- O.directory
   pure (Unapplied connectionString table dir)
 
 appliedP :: Parser Cmd
 appliedP = do
-  connectionString <- connectionStringO
-  table <- tableO
+  connectionString <- O.connectionString
+  table <- O.table
   pure (Applied connectionString table)
 
 verifyP :: Parser Cmd
 verifyP = do
-  connectionString <- connectionStringO
-  table <- tableO
-  dir <- directoryO
+  connectionString <- O.connectionString
+  table <- O.table
+  dir <- O.directory
   quiet <- switch (short 'q' <> long "quiet" <> help "do not output the problems")
   pure (Verify connectionString table dir quiet)
 
 applyP :: Parser Cmd
 applyP = do
-  connectionString <- connectionStringO
-  table <- tableO
-  dir <- directoryO
+  connectionString <- O.connectionString
+  table <- O.table
+  dir <- O.directory
   pure (Apply connectionString table dir)
 
 versionP :: Parser Cmd
@@ -82,77 +85,4 @@ versionP =
 
 internalP :: Parser Cmd
 internalP =
-  hsubparser
-    ( command "mark-applied"
-      (info internalMarkAppliedP (progDesc "mark a migration applied without running its script"))
-   <> command "delete"
-      (info internalDeleteP (progDesc "delete an applied migration from the database"))
-   <> command "delete-all"
-      (info internalDeleteAllP (progDesc "delete all applied migrations from the database"))
-    )
-
-internalMarkAppliedP :: Parser Cmd
-internalMarkAppliedP = do
-  connectionString <- connectionStringO
-  table <- tableO
-  file <- fileO
-  pure (MarkApplied connectionString table file)
-
-internalDeleteP :: Parser Cmd
-internalDeleteP = do
-  connectionString <- connectionStringO
-  table <- tableO
-  id <- idO
-  pure (Delete connectionString table id)
-
-internalDeleteAllP :: Parser Cmd
-internalDeleteAllP = do
-  connectionString <- connectionStringO
-  table <- tableO
-  pure (DeleteAll connectionString table)
-
-connectionStringO :: Parser ConnectionString
-connectionStringO =
-  strOption
-    ( short 'c'
-   <> long "connection-string"
-   <> metavar "CONNECTION_STRING"
-   <> help "PostgreSQL connection string"
-    )
-
-tableO :: Parser Table
-tableO =
-  strOption
-    ( short 't'
-   <> long "migration-table-name"
-   <> metavar "IDENTIFIER"
-   <> value defaultTable
-   <> showDefault
-   <> help "Table containing recorded migrations"
-    )
-
-directoryO :: Parser String
-directoryO =
-  strOption
-    ( short 'd'
-   <> long "directory"
-   <> metavar "PATH"
-   <> help "Directory containing .sql scripts"
-    )
-
-fileO :: Parser String
-fileO =
-  strOption
-    ( short 'f'
-   <> long "file"
-   <> metavar "PATH"
-   <> help "Path to an .sql script"
-    )
-
-idO :: Parser Migration.ID
-idO =
-  strOption
-    ( long "id"
-   <> metavar "ID"
-   <> help "Migration ID"
-    )
+  fmap Internal Internal.parser

@@ -35,12 +35,16 @@ run = do
       runApply connectionString table dir
     Opts.Version ->
       putStrLn Meta.version
-    Opts.MarkApplied connectionString table file ->
-      runMarkApplied connectionString table file
-    Opts.Delete connectionString table id ->
-      runDelete connectionString table id
-    Opts.DeleteAll connectionString table ->
-      runDeleteAll connectionString table
+    Opts.Internal internalCmd ->
+      case internalCmd of
+        Opts.DumpSchema connectionString ->
+          runDumpSchema connectionString
+        Opts.MarkApplied connectionString table file ->
+          runMarkApplied connectionString table file
+        Opts.Delete connectionString table id ->
+          runDelete connectionString table id
+        Opts.DeleteAll connectionString table ->
+          runDeleteAll connectionString table
 
 runUnapplied :: DB.ConnectionString -> DB.Table -> FilePath -> IO ()
 runUnapplied connectionString table dir =
@@ -89,6 +93,10 @@ runApply connectionString table dir =
         durationS <- makeInterval_ (Script.run script conn)
         Script.recordApplied table script durationS conn
     verify table conn dir False
+
+runDumpSchema :: DB.ConnectionString -> IO ()
+runDumpSchema _connectionString =
+  DB.dumpSchema
 
 runMarkApplied :: DB.ConnectionString -> DB.Table -> FilePath -> IO ()
 runMarkApplied connectionString table path =

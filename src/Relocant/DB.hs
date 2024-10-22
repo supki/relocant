@@ -8,6 +8,7 @@ module Relocant.DB
   , init
   , withLock
   , withTryLock
+  , dumpSchema
   ) where
 
 import Control.Exception (bracket, bracket_)
@@ -18,6 +19,7 @@ import Database.PostgreSQL.Simple qualified as DB
 import Database.PostgreSQL.Simple.FromRow qualified as DB (field)
 import Database.PostgreSQL.Simple.SqlQQ qualified as DB (sql)
 import Prelude hiding (init)
+import System.Process (callProcess)
 
 import Relocant.DB.Table (Table, defaultTable)
 
@@ -91,3 +93,7 @@ unlock table conn = do
     SELECT pg_advisory_unlock(hashtext('?'))
   |] (DB.Only table)
   pure unlocked
+
+dumpSchema :: IO ()
+dumpSchema =
+  callProcess "pg_dump" ["--schema-only", "--no-owner", "--no-acl"]
