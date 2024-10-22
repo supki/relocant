@@ -28,8 +28,8 @@ custom-setup
 
 library
   exposed-modules:
-      Cfg
       Relocant.App
+      Relocant.App.Env
       Relocant.App.Opts
       Relocant.App.Opts.Internal
       Relocant.App.Opts.Option

@@ -20,6 +20,7 @@ import Prelude hiding (id)
 
 import Meta_relocant qualified as Meta
 import Relocant.DB (ConnectionString, Table)
+import Relocant.App.Env (Env)
 import Relocant.App.Opts.Option qualified as O
 import Relocant.App.Opts.Internal (InternalCmd(..))
 import Relocant.App.Opts.Internal qualified as Internal
@@ -58,66 +59,62 @@ data Apply = MkApply
   , scripts    :: FilePath
   } deriving (Show, Eq)
 
-parse :: IO Cmd
-parse =
+parse :: Env -> IO Cmd
+parse env =
   customExecParser defaultPrefs {prefShowHelpOnError = True}
     (info
-      (parser <**> helper)
+      (parser env <**> helper)
       (fullDesc <> progDesc "Migrate PostgreSQL database" <> header "relocant - migrating utility"))
 
-parser :: Parser Cmd
-parser =
+parser :: Env -> Parser Cmd
+parser env =
   hsubparser
     ( command "unapplied"
-      (info unappliedP (progDesc "list unapplied migrations"))
+      (info (unappliedP env) (progDesc "list unapplied migrations"))
    <> command "applied"
-      (info appliedP (progDesc "list applied migrations"))
+      (info (appliedP env) (progDesc "list applied migrations"))
    <> command "verify"
-      (info verifyP (progDesc "verify that there are no unapplied migrations"))
+      (info (verifyP env) (progDesc "verify that there are no unapplied migrations"))
    <> command "apply"
-      (info applyP (progDesc "apply the unapplied migrations"))
+      (info (applyP env) (progDesc "apply the unapplied migrations"))
    <> command "version"
       (info versionP (progDesc "see library's version"))
    <> command "internal"
-      (info internalP (progDesc "internal subcomamnds"))
+      (info (internalP env) (progDesc "internal subcomamnds"))
     )
-   -- environment variables ?
-   -- --format (text / json)
-   -- --with-content
-   -- actual logging
 
-unappliedP :: Parser Cmd
-unappliedP = do
+unappliedP :: Env -> Parser Cmd
+unappliedP env = do
   connString <- O.connectionString
-  table <- O.table
-  scripts <- O.directory
+  table <- O.table env
+  scripts <- O.scripts env
   pure (Unapplied MkUnapplied {..})
 
-appliedP :: Parser Cmd
-appliedP = do
+appliedP :: Env -> Parser Cmd
+appliedP env = do
   connString <- O.connectionString
-  table <- O.table
+  table <- O.table env
   pure (Applied MkApplied {..})
 
-verifyP :: Parser Cmd
-verifyP = do
+verifyP :: Env -> Parser Cmd
+verifyP env = do
   connString <- O.connectionString
-  table <- O.table
-  scripts <- O.directory
+  table <- O.table env
+  scripts <- O.scripts env
   quiet <- switch (short 'q' <> long "quiet" <> help "do not output the problems")
   pure (Verify MkVerify {..})
 
-applyP :: Parser Cmd
-applyP = do
+applyP :: Env -> Parser Cmd
+applyP env = do
   connString <- O.connectionString
-  table <- O.table
-  scripts <- O.directory
+  table <- O.table env
+  scripts <- O.scripts env
   pure (Apply MkApply {..})
 
 versionP :: Parser Cmd
 versionP =
   pure (Version Meta.version)
 
-internalP :: Parser Cmd
+internalP :: Env -> Parser Cmd
 internalP =
-  fmap Internal Internal.parser
+  fmap Internal . Internal.parser

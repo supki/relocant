@@ -1,15 +1,16 @@
 module Relocant.App.Opts.Option
   ( connectionString
   , table
-  , directory
-  , file
+  , scripts
+  , script
   , id
   ) where
 
 import Options.Applicative
 import Prelude hiding (id)
 
-import Relocant.DB (ConnectionString, Table, defaultTable)
+import Relocant.App.Env (Env(..))
+import Relocant.DB (ConnectionString, Table)
 import Relocant.Migration qualified as Migration
 
 
@@ -19,31 +20,33 @@ connectionString =
     ( short 'c'
    <> long "connection-string"
    <> metavar "CONNECTION_STRING"
+   <> value ""
    <> help "PostgreSQL connection string"
     )
 
-table :: Parser Table
-table =
+table :: Env -> Parser Table
+table env =
   strOption
     ( short 't'
    <> long "migration-table-name"
    <> metavar "IDENTIFIER"
-   <> value defaultTable
+   <> value env.table
    <> showDefault
-   <> help "Table containing recorded migrations"
+   <> help "Name of the table containing applied migrations"
     )
 
-directory :: Parser String
-directory =
+scripts :: Env -> Parser String
+scripts env =
   strOption
     ( short 'd'
    <> long "directory"
    <> metavar "PATH"
+   <> foldMap value env.scripts
    <> help "Directory containing .sql scripts"
     )
 
-file :: Parser String
-file =
+script :: Parser String
+script =
   strOption
     ( short 'f'
    <> long "file"

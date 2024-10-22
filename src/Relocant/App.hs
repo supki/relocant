@@ -13,6 +13,7 @@ import GHC.Records (HasField)
 import Prelude hiding (id)
 import System.Exit (die, exitFailure)
 
+import Relocant.App.Env qualified as Env
 import Relocant.App.Opts qualified as Opts
 import Relocant.DB qualified as DB
 import Relocant.Migration qualified as Migration
@@ -22,7 +23,6 @@ import Relocant.Migration.Merge qualified as Migration.Merge
 import Relocant.Script qualified as Script
 
 
--- environment variables ?
 -- --format (tsv / json)
 -- --with-content? we probably want to have separate commands for looking into a specific script/migration
 --   unapplied --id ?
@@ -32,7 +32,8 @@ import Relocant.Script qualified as Script
 
 run :: IO ()
 run = do
-  cmd <- Opts.parse
+  env <- Env.parse
+  cmd <- Opts.parse env
   case cmd of
     Opts.Unapplied opts ->
       runUnapplied opts

@@ -19,7 +19,8 @@ pkgs.mkShell rec {
       PGDATA=$PWD/.pg/data \
       PGHOST=$PWD/.pg/host \
       PGPORT=5432 \
-      PGUSER=$USER
+      PGUSER=$USER \
+      RELOCANT_SCRIPTS_DIR=./migration
 
   trap './asset/wrap-pg_ctl stop --no-wait' EXIT
   ./asset/wrap-pg_ctl start

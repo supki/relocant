@@ -13,6 +13,7 @@ module Relocant.App.Opts.Internal
 import Options.Applicative
 import Prelude hiding (id)
 
+import Relocant.App.Env (Env)
 import Relocant.App.Opts.Option qualified as O
 import Relocant.DB (ConnectionString, Table)
 import Relocant.Migration qualified as Migration
@@ -25,17 +26,18 @@ data InternalCmd
   | DeleteAll DeleteAll
     deriving (Show, Eq)
 
-parser :: Parser InternalCmd
-parser =
+parser :: Env -> Parser InternalCmd
+parser env =
   hsubparser
     ( command "dump-schema"
       (info dumpSchemaP (progDesc "dump db schema"))
    <> command "mark-applied"
-      (info markAppliedP (progDesc "mark a migration applied without running its script"))
+      (info (markAppliedP env)
+        (progDesc "mark a migration applied without running its script"))
    <> command "delete"
-      (info deleteP (progDesc "delete an applied migration from the database"))
+      (info (deleteP env) (progDesc "delete an applied migration from the database"))
    <> command "delete-all"
-      (info deleteAllP (progDesc "delete all applied migrations from the database"))
+      (info (deleteAllP env) (progDesc "delete all applied migrations from the database"))
     )
 
 data DumpSchema = MkDumpSchema
@@ -59,27 +61,27 @@ data DeleteAll = MkDeleteAll
   , table      :: Table
   } deriving (Show, Eq)
 
-dumpSchemaP  :: Parser InternalCmd
+dumpSchemaP :: Parser InternalCmd
 dumpSchemaP = do
   connString <- O.connectionString
   pure (DumpSchema MkDumpSchema {..})
 
-markAppliedP :: Parser InternalCmd
-markAppliedP = do
+markAppliedP :: Env -> Parser InternalCmd
+markAppliedP env = do
   connString <- O.connectionString
-  table <- O.table
-  script <- O.file
+  table <- O.table env
+  script <- O.script
   pure (MarkApplied MkMarkApplied {..})
 
-deleteP :: Parser InternalCmd
-deleteP = do
+deleteP :: Env -> Parser InternalCmd
+deleteP env = do
   connString <- O.connectionString
-  table <- O.table
+  table <- O.table env
   id <- O.id
   pure (Delete MkDelete {..})
 
-deleteAllP :: Parser InternalCmd
-deleteAllP = do
+deleteAllP :: Env -> Parser InternalCmd
+deleteAllP env = do
   connString <- O.connectionString
-  table <- O.table
+  table <- O.table env
   pure (DeleteAll MkDeleteAll {..})
