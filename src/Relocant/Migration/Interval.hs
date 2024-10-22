@@ -4,30 +4,24 @@ module Relocant.Migration.Interval
   ( Interval(..)
   , makeInterval
   , makeInterval_
+  , zeroInterval
   ) where
 
 import Data.Time
-  ( NominalDiffTime
-  , getCurrentTime
+  ( getCurrentTime
   , diffUTCTime
   )
 import Database.PostgreSQL.Simple.FromField qualified as DB (FromField(..))
 import Database.PostgreSQL.Simple.ToField qualified as DB (ToField(..))
 
 
-newtype Interval = Interval NominalDiffTime
+newtype Interval = Interval Double
     deriving
       ( Show
       , Eq
+      , DB.FromField
+      , DB.ToField
       )
-
-instance DB.FromField Interval where
-  fromField conv f =
-    fmap (Interval . fromIntegral @Int) (DB.fromField conv f)
-
-instance DB.ToField Interval where
-  toField (Interval s) =
-    DB.toField @Int (truncate s)
 
 makeInterval_:: IO x -> IO Interval
 makeInterval_ m = do
@@ -39,4 +33,8 @@ makeInterval m = do
   t0 <- getCurrentTime
   a <- m
   t1 <- getCurrentTime
-  pure (Interval (t1 `diffUTCTime` t0), a)
+  pure (Interval (realToFrac (t1 `diffUTCTime` t0)), a)
+
+zeroInterval :: Interval
+zeroInterval =
+  Interval 0

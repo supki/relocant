@@ -53,7 +53,7 @@ loadAll table conn = do
          , bytes
          , sha1
          , applied_at
-         , EXTRACT(epoch FROM duration_s) :: INTEGER
+         , EXTRACT(epoch FROM duration_s) :: REAL
       FROM ?
   ORDER BY id
   |] (DB.Only table)
@@ -66,7 +66,7 @@ loadByID id table conn = do
          , bytes
          , sha1
          , applied_at
-         , EXTRACT(epoch FROM duration_s) :: INTEGER
+         , EXTRACT(epoch FROM duration_s) :: REAL
       FROM ?
      WHERE id = ?
   |] (table, id)

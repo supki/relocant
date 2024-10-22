@@ -17,7 +17,7 @@ import Relocant.App.Env qualified as Env
 import Relocant.App.Opts qualified as Opts
 import Relocant.DB qualified as DB
 import Relocant.Migration qualified as Migration
-import Relocant.Migration.Interval (makeInterval_)
+import Relocant.Migration.Interval (makeInterval_, zeroInterval)
 import Relocant.Migration.Merge qualified as Migration (merge)
 import Relocant.Migration.Merge qualified as Migration.Merge
 import Relocant.Script qualified as Script
@@ -28,7 +28,6 @@ import Relocant.Script qualified as Script
 --   unapplied --id ?
 --   applied --id ?
 -- actual logging
--- rethink duration_s
 
 run :: IO ()
 run = do
@@ -112,10 +111,9 @@ runMarkApplied :: Opts.MarkApplied -> IO ()
 runMarkApplied opts =
   withTryLock opts $ \conn -> do
     script <- Script.readFile opts.script
-    durationS <- makeInterval_ (pure ())
     DB.withTransaction conn $ do
       _deleted <- Migration.deleteByID script.id opts.table conn
-      Script.recordApplied opts.table script durationS conn
+      Script.recordApplied opts.table script zeroInterval conn
 
 runDelete :: Opts.Delete -> IO ()
 runDelete opts =
