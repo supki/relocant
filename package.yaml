@@ -30,6 +30,7 @@ default-extensions:
 
 library:
   dependencies:
+    - aeson
     - bytestring
     - crypton
     - directory
@@ -39,6 +40,7 @@ library:
     - optparse-applicative
     - postgresql-simple
     - process
+    - text
     - time
   source-dirs:
     src

@@ -1,5 +1,7 @@
+{-# LANGUAGE LambdaCase #-}
 module Relocant.App.Opts.Option
-  ( connectionString
+  ( minSeverity
+  , connectionString
   , table
   , scripts
   , script
@@ -10,9 +12,33 @@ import Options.Applicative
 import Prelude hiding (id)
 
 import Relocant.App.Env (Env(..))
+import Relocant.App.Log qualified as Log
 import Relocant.DB (ConnectionString, Table)
 import Relocant.Migration qualified as Migration
 
+
+minSeverity :: Parser Log.Severity
+minSeverity =
+  option severityR
+    ( long "log-min-severity"
+   <> value Log.Info
+   <> showDefaultWith (\_ -> "info")
+    )
+ where
+  severityR =
+    eitherReader $ \case
+      "debug" ->
+        pure Log.Debug
+      "info" ->
+        pure Log.Info
+      "notice" ->
+        pure Log.Notice
+      "warning" ->
+        pure Log.Warning
+      "error" ->
+        pure Log.Error
+      _ ->
+        Left "unknown severity, possible values: debug, info, notice, warning, error"
 
 connectionString :: Parser ConnectionString
 connectionString =

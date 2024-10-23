@@ -3,6 +3,7 @@
 module Relocant.App.Env
   ( Env(..)
   , Relocant.App.Env.parse
+  , Meta.name
   , Meta.version
   ) where
 

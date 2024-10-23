@@ -13,8 +13,10 @@ module Relocant.DB
 
 import Control.Exception (bracket, bracket_)
 import Control.Monad (when)
+import Data.Aeson qualified as Aeson
 import Data.ByteString (ByteString)
 import Data.String (IsString)
+import Data.Text.Encoding qualified as Text
 import Database.PostgreSQL.Simple qualified as DB
 import Database.PostgreSQL.Simple.FromRow qualified as DB (field)
 import Database.PostgreSQL.Simple.SqlQQ qualified as DB (sql)
@@ -25,7 +27,15 @@ import Relocant.DB.Table (Table, defaultTable)
 
 
 newtype ConnectionString = ConnectionString ByteString
-    deriving (Show, Eq, IsString)
+    deriving
+      ( Show
+      , Eq
+      , IsString
+      )
+
+instance Aeson.ToJSON ConnectionString where
+  toJSON (ConnectionString connString) =
+    Aeson.toJSON (Text.decodeUtf8Lenient connString)
 
 connect :: ConnectionString -> Table -> IO DB.Connection
 connect (ConnectionString str) table = do

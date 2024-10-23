@@ -1,8 +1,12 @@
 {-# LANGUAGE ApplicativeDo #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RecordWildCards #-}
 module Relocant.App.Opts
-  ( Cmd(..)
+  ( Cfg(..)
+  , Cmd(..)
   , InternalCmd(..)
   , parse
   , Unapplied(..)
@@ -15,20 +19,27 @@ module Relocant.App.Opts
   , Internal.DeleteAll(..)
   ) where
 
+import Data.Aeson qualified as Aeson
+import GHC.Generics (Generic, Rep)
 import Options.Applicative
 import Prelude hiding (id)
 
 import Meta_relocant qualified as Meta
 import Relocant.DB (ConnectionString, Table)
 import Relocant.App.Env (Env)
+import Relocant.App.Log qualified as Log
 import Relocant.App.Opts.Option qualified as O
 import Relocant.App.Opts.Internal (InternalCmd(..))
 import Relocant.App.Opts.Internal qualified as Internal
 
 
+data Cfg = Cfg
+  { minSeverity :: Log.Severity
+  } deriving (Show, Eq)
+
 data Cmd
-  = Unapplied Unapplied
-  | Applied Applied
+  = ListUnapplied Unapplied
+  | ListApplied Applied
   | Verify Verify
   | Apply Apply
   | Version String
@@ -39,40 +50,62 @@ data Unapplied = MkUnapplied
   { connString :: ConnectionString
   , table      :: Table
   , scripts    :: FilePath
-  } deriving (Show, Eq)
+  } deriving (Show, Eq, Generic)
+
+instance Aeson.ToJSON Unapplied where
+  toJSON = toJSONG
 
 data Applied = MkApplied
   { connString :: ConnectionString
   , table      :: Table
-  } deriving (Show, Eq)
+  } deriving (Show, Eq, Generic)
+
+instance Aeson.ToJSON Applied where
+  toJSON = toJSONG
 
 data Verify = MkVerify
   { connString :: ConnectionString
   , table      :: Table
   , scripts    :: FilePath
   , quiet      :: Bool
-  } deriving (Show, Eq)
+  } deriving (Show, Eq, Generic)
+
+instance Aeson.ToJSON Verify where
+  toJSON = toJSONG
 
 data Apply = MkApply
   { connString :: ConnectionString
   , table      :: Table
   , scripts    :: FilePath
-  } deriving (Show, Eq)
+  } deriving (Show, Eq, Generic)
 
-parse :: Env -> IO Cmd
+instance Aeson.ToJSON Apply where
+  toJSON = toJSONG
+
+toJSONG :: (Generic a, Aeson.GToJSON' Aeson.Value Aeson.Zero (Rep a)) => a -> Aeson.Value
+toJSONG =
+  Aeson.genericToJSON Aeson.defaultOptions
+    { Aeson.fieldLabelModifier = \case
+        "table" -> "migrations-table-name"
+        "connString" -> "connection-string"
+        label -> label
+    }
+
+parse :: Env -> IO (Cfg, Cmd)
 parse env =
   customExecParser defaultPrefs {prefShowHelpOnError = True}
     (info
       (parser env <**> helper)
       (fullDesc <> progDesc "Migrate PostgreSQL database" <> header "relocant - migrating utility"))
 
-parser :: Env -> Parser Cmd
-parser env =
-  hsubparser
-    ( command "unapplied"
-      (info (unappliedP env) (progDesc "list unapplied migrations"))
-   <> command "applied"
-      (info (appliedP env) (progDesc "list applied migrations"))
+parser :: Env -> Parser (Cfg, Cmd)
+parser env = do
+  cfg <- cfgP
+  cmd <- hsubparser
+    ( command "list-unapplied"
+      (info (listUnappliedP env) (progDesc "list unapplied migrations"))
+   <> command "list-applied"
+      (info (listAppliedP env) (progDesc "list applied migrations"))
    <> command "verify"
       (info (verifyP env) (progDesc "verify that there are no unapplied migrations"))
    <> command "apply"
@@ -82,19 +115,25 @@ parser env =
    <> command "internal"
       (info (internalP env) (progDesc "internal subcomamnds"))
     )
+  pure (cfg, cmd)
 
-unappliedP :: Env -> Parser Cmd
-unappliedP env = do
+cfgP :: Parser Cfg
+cfgP = do
+  minSeverity <- O.minSeverity
+  pure Cfg {..}
+
+listUnappliedP :: Env -> Parser Cmd
+listUnappliedP env = do
   connString <- O.connectionString
   table <- O.table env
   scripts <- O.scripts env
-  pure (Unapplied MkUnapplied {..})
+  pure (ListUnapplied MkUnapplied {..})
 
-appliedP :: Env -> Parser Cmd
-appliedP env = do
+listAppliedP :: Env -> Parser Cmd
+listAppliedP env = do
   connString <- O.connectionString
   table <- O.table env
-  pure (Applied MkApplied {..})
+  pure (ListApplied MkApplied {..})
 
 verifyP :: Env -> Parser Cmd
 verifyP env = do

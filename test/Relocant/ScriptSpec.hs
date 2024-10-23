@@ -8,6 +8,7 @@ import System.FilePath ((</>))
 import System.IO.Temp
 import Test.Hspec
 
+import Relocant.App.Env qualified as Env
 import Relocant.Migration qualified as Migration
 import Relocant.Migration.Interval (makeInterval_)
 import Relocant.Script
@@ -22,7 +23,6 @@ import Relocant.Script qualified as Script (readFile)
 import Relocant.DB qualified as DB
 
 import SpecHelper.DB qualified as DB
-import Cfg qualified
 
 
 spec :: Spec
@@ -46,7 +46,7 @@ spec = do
 
   describe "readContent" $ do
     it "reads the file and returns the content and its hash" $
-      withSystemTempDirectory Cfg.name $ \tmpDir -> do
+      withSystemTempDirectory Env.name $ \tmpDir -> do
         let
           path =
             tmpDir </> "a"
@@ -55,7 +55,7 @@ spec = do
 
   describe "readFile" $ do
     it "combines parseFilePath and readContent" $
-      withSystemTempDirectory Cfg.name $ \tmpDir -> do
+      withSystemTempDirectory Env.name $ \tmpDir -> do
         let
           path =
             tmpDir </> "0001-migration-name.sql"
@@ -69,7 +69,7 @@ spec = do
 
   describe "listDirectory" $
     it "lists all .sql files in a directory, ordered by ID" $
-      withSystemTempDirectory Cfg.name $ \tmpDir -> do
+      withSystemTempDirectory Env.name $ \tmpDir -> do
         let
           file name =
             tmpDir </> name

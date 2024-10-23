@@ -6,6 +6,7 @@ module SpecHelper.DB
   ) where
 
 import Control.Exception (bracket, bracket_, catch)
+import Control.Monad (when)
 import Data.ByteString (ByteString)
 import Data.Int (Int32)
 import Data.String (fromString)
@@ -20,14 +21,17 @@ import Relocant.DB qualified as DB (init)
 
 createTemplate :: IO ()
 createTemplate = do
-  bracket (DB.connectPostgreSQL "") DB.close $ \conn ->
+  created <- bracket (DB.connectPostgreSQL "") DB.close $ \conn -> do
     createBase "relocant_base" conn
+    pure True
    `catch`
-    \(DB.SomePostgreSqlException _) -> pure ()
-  withDB "relocant_base" $ \conn -> do
-    DB.init conn "public.relocant_migration"
-    setTemplate "relocant_base" conn
-    DB.close conn
+    \DB.SqlError {DB.sqlErrorMsg = "database \"relocant_base\" already exists"} ->
+      pure False
+  when created $
+    withDB "relocant_base" $ \conn -> do
+      DB.init conn "public.relocant_migration"
+      setTemplate "relocant_base" conn
+      DB.close conn
 
 withTemplateCloned :: (DB.Connection -> IO a) -> IO a
 withTemplateCloned f = do

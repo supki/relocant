@@ -4,6 +4,7 @@ module Relocant.DB.Table
   , defaultTable
   ) where
 
+import Data.Aeson qualified as Aeson
 import Data.String (IsString)
 import Database.PostgreSQL.Simple.ToField qualified as DB (ToField)
 import Database.PostgreSQL.Simple.Types qualified as DB (QualifiedIdentifier(..))
@@ -25,6 +26,10 @@ instance Show Table where
         printf "%s.%s" s i
       Nothing ->
         printf "%s" i
+
+instance Aeson.ToJSON Table where
+  toJSON =
+    Aeson.toJSON . show
 
 defaultTable :: Table
 defaultTable =

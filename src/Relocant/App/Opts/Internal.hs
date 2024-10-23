@@ -1,5 +1,8 @@
 {-# LANGUAGE ApplicativeDo #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RecordWildCards #-}
 module Relocant.App.Opts.Internal
   ( InternalCmd(..)
@@ -10,6 +13,8 @@ module Relocant.App.Opts.Internal
   , DeleteAll(..)
   ) where
 
+import Data.Aeson qualified as Aeson
+import GHC.Generics (Generic, Rep)
 import Options.Applicative
 import Prelude hiding (id)
 
@@ -42,24 +47,45 @@ parser env =
 
 data DumpSchema = MkDumpSchema
   { connString :: ConnectionString
-  } deriving (Show, Eq)
+  } deriving (Show, Eq, Generic)
+
+instance Aeson.ToJSON DumpSchema where
+  toJSON = toJSONG
 
 data MarkApplied = MkMarkApplied
   { connString :: ConnectionString
   , table      :: Table
   , script     :: FilePath
-  } deriving (Show, Eq)
+  } deriving (Show, Eq, Generic)
+
+instance Aeson.ToJSON MarkApplied where
+  toJSON = toJSONG
 
 data Delete = MkDelete
   { connString :: ConnectionString
   , table      :: Table
   , id         :: Migration.ID
-  } deriving (Show, Eq)
+  } deriving (Show, Eq, Generic)
+
+instance Aeson.ToJSON Delete where
+  toJSON = toJSONG
 
 data DeleteAll = MkDeleteAll
   { connString :: ConnectionString
   , table      :: Table
-  } deriving (Show, Eq)
+  } deriving (Show, Eq, Generic)
+
+instance Aeson.ToJSON DeleteAll where
+  toJSON = toJSONG
+
+toJSONG :: (Generic a, Aeson.GToJSON' Aeson.Value Aeson.Zero (Rep a)) => a -> Aeson.Value
+toJSONG =
+  Aeson.genericToJSON Aeson.defaultOptions
+    { Aeson.fieldLabelModifier = \case
+        "table" -> "migrations-table-name"
+        "connString" -> "connection-string"
+        label -> label
+    }
 
 dumpSchemaP :: Parser InternalCmd
 dumpSchemaP = do
