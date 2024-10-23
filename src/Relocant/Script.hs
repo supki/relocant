@@ -121,7 +121,7 @@ recordApplied table s durationS conn = do
   |] ( table
      , s.id
      , s.name
-     , s.bytes
+     , DB.Binary s.bytes
      , DB.Binary (convert @_ @ByteString s.sha1)
      , durationS
      )

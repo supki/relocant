@@ -83,7 +83,7 @@ migrationP :: DB.RowParser Migration
 migrationP = do
   id <- DB.field
   name <- DB.field
-  bytes <- DB.field
+  DB.Binary bytes <- DB.field
   DB.Binary bs <- DB.field
   let
     Just sha1 =
