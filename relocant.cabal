@@ -37,6 +37,7 @@ library
       Relocant.DB
       Relocant.DB.Table
       Relocant.Migration
+      Relocant.Migration.At
       Relocant.Migration.ID
       Relocant.Migration.Interval
       Relocant.Migration.Merge
@@ -90,11 +91,13 @@ executable relocant
 
 test-suite spec
   type: exitcode-stdio-1.0
-  main-is: Spec.hs
+  main-is: Main.hs
   other-modules:
       Relocant.Migration.IntervalSpec
+      Relocant.Migration.MergeSpec
       Relocant.MigrationSpec
       Relocant.ScriptSpec
+      Spec
       SpecHelper.DB
       Paths_relocant
   hs-source-dirs:
@@ -109,6 +112,7 @@ test-suite spec
   build-depends:
       base >=4.7 && <5
     , bytestring
+    , crypton
     , filepath
     , hspec
     , postgresql-simple

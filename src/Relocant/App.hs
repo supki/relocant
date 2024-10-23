@@ -30,7 +30,6 @@ import Relocant.Script qualified as Script
 -- --with-content? we probably want to have separate commands for looking into a specific script/migration
 --   unapplied --id ?
 --   applied --id ?
--- actual logging
 
 run :: IO ()
 run = do
@@ -257,4 +256,4 @@ loadAll :: DB.Table -> DB.Connection -> FilePath -> IO Migration.Merge.Result
 loadAll table conn dir = do
   migrations <- Migration.loadAll table conn
   scripts <- Script.listDirectory dir
-  pure (Migration.merge migrations scripts)
+  pure (Migration.merge migrations scripts)                

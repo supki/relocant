@@ -16,14 +16,13 @@ module Relocant.Migration
 import "crypton" Crypto.Hash (Digest, SHA1, digestFromByteString)
 import Data.ByteString (ByteString)
 import Data.Maybe (listToMaybe)
-import Data.Time (ZonedTime, zonedTimeToUTC)
 import Database.PostgreSQL.Simple qualified as DB
-import Database.PostgreSQL.Simple.FromField qualified as DB (FromField)
 import Database.PostgreSQL.Simple.FromRow qualified as DB (RowParser, field)
 import Database.PostgreSQL.Simple.SqlQQ qualified as DB (sql)
 import Prelude hiding (id, readFile)
 
 import Relocant.DB qualified as DB (Table)
+import Relocant.Migration.At qualified as Migration (At)
 import Relocant.Migration.ID qualified as Migration (ID)
 import Relocant.Migration.Name qualified as Migration (Name)
 import Relocant.Migration.Interval qualified as Migration (Interval)
@@ -34,16 +33,9 @@ data Migration = Migration
   , name      :: Migration.Name
   , bytes     :: ByteString
   , sha1      :: Digest SHA1
-  , appliedAt :: At
+  , appliedAt :: Migration.At
   , durationS :: Migration.Interval
   } deriving (Show, Eq)
-
-newtype At = At ZonedTime
-    deriving (Show, DB.FromField)
-
-instance Eq At where
-  At x == At y =
-    zonedTimeToUTC x == zonedTimeToUTC y
 
 loadAll :: DB.Table -> DB.Connection -> IO [Migration]
 loadAll table conn = do

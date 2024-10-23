@@ -6,7 +6,6 @@
 {-# LANGUAGE TypeApplications #-}
 module Relocant.Script
   ( Script(..)
-  , Name
   , Content(..)
   , listDirectory
   , readFile
@@ -24,7 +23,6 @@ import Data.Char qualified as Char
 import Data.List qualified as List
 import Data.String (IsString(..))
 import Database.PostgreSQL.Simple qualified as DB
-import Database.PostgreSQL.Simple.ToField qualified as DB (ToField)
 import Database.PostgreSQL.Simple.SqlQQ qualified as DB (sql)
 import Database.PostgreSQL.Simple.Types qualified as DB (Query(..))
 import GHC.Records (HasField(getField))
@@ -51,9 +49,6 @@ instance HasField "bytes" Script ByteString where
 instance HasField "sha1" Script (Digest SHA1) where
   getField m =
     m.content.sha1
-
-newtype Name = Name String
-    deriving (Show, Eq, DB.ToField)
 
 data Content = Content
   { bytes :: ByteString
