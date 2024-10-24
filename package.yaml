@@ -1,10 +1,11 @@
 name:                relocant
 version:             1.0.0
-synopsis:            This is relocant
-description:         See README.markdown
+synopsis:            A PostgreSQL migration CLI tool and library
+description:
+  relocant documentation is at https://github.com/supki/relocant
 license:             BSD2
 author:              Matvey Aksenov
-maintainer:          matvey.aksenov@@gmail.com
+maintainer:          matvey.aksenov@gmail.com
 copyright:           2024 Matvey Aksenov
 extra-source-files:
   - README.markdown

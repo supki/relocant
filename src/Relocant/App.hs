@@ -199,7 +199,7 @@ apply log table conn scripts = do
     DB.withTransaction conn $ do
       Log.info log
         [ "action" .= ("apply" :: String)
-        , "run" .= script.id
+        , "apply" .= script.id
         ]
       durationS <- Relocant.apply script conn
       Log.info log
