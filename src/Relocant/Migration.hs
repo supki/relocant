@@ -7,8 +7,8 @@
 module Relocant.Migration
   ( Migration(..)
   , Migration.ID
-  , loadAll
-  , loadByID
+  , selectAll
+  , selectByID
   , deleteAll
   , deleteByID
   ) where
@@ -49,8 +49,8 @@ instance Aeson.ToJSON Migration where
       , "duration_s" .= m.durationS
       ]
 
-loadAll :: DB.Table -> DB.Connection -> IO [Migration]
-loadAll table conn = do
+selectAll :: DB.Table -> DB.Connection -> IO [Migration]
+selectAll table conn = do
   DB.queryWith migrationP conn [DB.sql|
     SELECT id
          , name
@@ -62,8 +62,8 @@ loadAll table conn = do
   ORDER BY id
   |] (DB.Only table)
 
-loadByID :: Migration.ID -> DB.Table -> DB.Connection -> IO (Maybe Migration)
-loadByID id table conn = do
+selectByID :: Migration.ID -> DB.Table -> DB.Connection -> IO (Maybe Migration)
+selectByID id table conn = do
   ms <- DB.queryWith migrationP conn [DB.sql|
     SELECT id
          , name

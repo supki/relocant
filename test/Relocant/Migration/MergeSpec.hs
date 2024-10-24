@@ -11,7 +11,7 @@ import Test.Hspec
 import Relocant.Migration (Migration(..))
 import Relocant.Migration.At (epoch)
 import Relocant.Migration.Interval (zeroInterval)
-import Relocant.Migration.Merge (Result(..), ContentMismatch(..), merge)
+import Relocant.Migration.Merge (Merged(..), ContentMismatch(..), merge)
 import Relocant.Script (Script(..))
 
 
@@ -54,7 +54,7 @@ spec = do
     let
       result =
         merge [m1, m2] [s0, s1, s3]
-    result `shouldBe` Result
+    result `shouldBe` Merged
       { unrecorded = [s0]
       , scriptMissing = [m2]
       , contentMismatch = [ContentMismatch m1 s1]

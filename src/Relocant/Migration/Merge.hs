@@ -1,10 +1,10 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
 module Relocant.Migration.Merge
-  ( Result(..)
+  ( Merged(..)
   , ContentMismatch(..)
   , merge
-  , ready
+  , canApply
   , converged
   ) where
 
@@ -14,7 +14,7 @@ import Relocant.Migration (Migration(..))
 import Relocant.Script (Script(..))
 
 
-data Result = Result
+data Merged = Merged
   { unrecorded      :: [Script]
     -- ^ a script that does not have a corresponding
     -- recorded migration, when there is a recorded migration
@@ -30,7 +30,7 @@ data Result = Result
     -- recorded migration
   } deriving (Show, Eq)
 
-instance Aeson.ToJSON Result where
+instance Aeson.ToJSON Merged where
   toJSON r =
     Aeson.object
        [ "unrecorded" .= r.unrecorded
@@ -51,17 +51,17 @@ instance Aeson.ToJSON ContentMismatch where
        , "but-got" .= cm.butGot
        ]
 
-ready :: Result -> Bool
-ready = \case
-  Result {unrecorded = [], scriptMissing = [], contentMismatch = []} -> True
+canApply :: Merged -> Bool
+canApply = \case
+  Merged {unrecorded = [], scriptMissing = [], contentMismatch = []} -> True
   _ -> False
 
-converged :: Result -> Bool
+converged :: Merged -> Bool
 converged = \case
-  Result {unrecorded = [], scriptMissing = [], contentMismatch = [], unapplied = []} -> True
+  Merged {unrecorded = [], scriptMissing = [], contentMismatch = [], unapplied = []} -> True
   _ -> False
 
-merge :: [Migration] -> [Script] -> Result
+merge :: [Migration] -> [Script] -> Merged
 merge migrations scripts =
   fromAcc (go ([], [], []) migrations scripts)
  where
@@ -86,7 +86,7 @@ merge migrations scripts =
       GT ->
         go (s : unrecorded, scriptMissing, contentMismatch) (m : ms) ss
 
-  fromAcc (unrecorded, unscripted, contentMismatch, unapplied) = Result
+  fromAcc (unrecorded, unscripted, contentMismatch, unapplied) = Merged
     { unrecorded = reverse unrecorded
     , scriptMissing = reverse unscripted
     , contentMismatch = reverse contentMismatch

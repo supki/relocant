@@ -7,12 +7,12 @@
 module Relocant.Script
   ( Script(..)
   , Content(..)
-  , listDirectory
+  , readAll
   , readFile
   , parseFilePath
   , readContent
-  , run
-  , recordApplied
+  , apply
+  , record
   ) where
 
 import "crypton" Crypto.Hash (Digest, SHA1, hash)
@@ -34,6 +34,7 @@ import System.FilePath ((</>), isExtensionOf, takeBaseName)
 
 import Relocant.DB qualified as DB (Table)
 import Relocant.Migration.ID qualified as Migration (ID)
+import Relocant.Migration.Interval (makeInterval_)
 import Relocant.Migration.Interval qualified as Migration (Interval)
 import Relocant.Migration.Name qualified as Migration (Name)
 
@@ -71,8 +72,8 @@ instance IsString Content where
     , sha1 = hash @ByteString @SHA1 (fromString str)
     }
 
-listDirectory :: FilePath -> IO [Script]
-listDirectory dir = do
+readAll :: FilePath -> IO [Script]
+readAll dir = do
   paths <- D.listDirectory dir
   scripts <- traverse (\path -> readFile (dir </> path)) (filter (isExtensionOf ".sql") paths)
   pure (List.sortOn (\script -> script.id) scripts)
@@ -106,13 +107,12 @@ parseFilePath path = do
       span Char.isAlphaNum basename
   (fromString id, fromString basename)
 
-run :: Script -> DB.Connection -> IO ()
-run script conn = do
-  _ <- DB.execute_ conn (DB.Query script.bytes)
-  pure ()
+apply :: Script -> DB.Connection -> IO Migration.Interval
+apply script conn = do
+  makeInterval_ (DB.execute_ conn (DB.Query script.bytes))
 
-recordApplied :: DB.Table -> Script -> Migration.Interval -> DB.Connection -> IO ()
-recordApplied table s durationS conn = do
+record :: DB.Table -> Script -> Migration.Interval -> DB.Connection -> IO ()
+record table s durationS conn = do
   1 <- DB.execute conn [DB.sql|
     INSERT INTO ?
               ( id

@@ -18,6 +18,7 @@ import GHC.Records (HasField)
 import Prelude hiding (id, log)
 import System.Exit (exitFailure)
 
+import Relocant qualified
 import Relocant.App.Env qualified as Env
 import Relocant.App.Log (Log)
 import Relocant.App.Log qualified as Log
@@ -25,16 +26,11 @@ import Relocant.App.Opts qualified as Opts
 import Relocant.App.Opts.Fmt (Fmt)
 import Relocant.App.Opts.Fmt qualified as Fmt
 import Relocant.App.ToText (ToText(..))
-import Relocant.DB qualified as DB
-import Relocant.Migration qualified as Migration
-import Relocant.Migration.Interval (makeInterval_, zeroInterval)
-import Relocant.Migration.Merge qualified as Migration (merge)
-import Relocant.Migration.Merge qualified as Migration.Merge
-import Relocant.Script qualified as Script
+import Relocant.DB qualified as DB (ConnectionString, Table, connect, dumpSchema, withLock, withTryLock)
+import Relocant.Migration qualified as Migration (selectByID, deleteAll, deleteByID)
+import Relocant.Migration.Interval (zeroInterval)
+import Relocant.Script qualified as Script (readFile)
 
-
--- --with-content? we probably want to have separate commands for looking into a specific script/migration
---   applied --id ?
 
 run :: IO ()
 run = do
@@ -109,19 +105,19 @@ runInternalCmd log = \case
 runListUnapplied :: Log -> Opts.ListUnapplied -> IO ()
 runListUnapplied log opts = do
   withTryLock log opts $ \conn -> do
-    migrations <- loadAll opts.table conn opts.scripts
+    migrations <- Relocant.mergeAll opts.table conn opts.scripts
     traverse_ (println opts.format) migrations.unapplied
 
 runListApplied :: Log -> Opts.ListApplied -> IO ()
 runListApplied log opts = do
   withTryLock log opts $ \conn -> do
-    migrations <- Migration.loadAll opts.table conn
+    migrations <- Relocant.getApplied opts.table conn
     traverse_ (println opts.format) migrations
 
 runShowApplied :: Log -> Opts.ShowApplied -> IO ()
 runShowApplied log opts = do
   withTryLock log opts $ \conn -> do
-    migration <- Migration.loadByID opts.id opts.table conn
+    migration <- Migration.selectByID opts.id opts.table conn
     maybe exitFailure (\m -> ByteString.putStr m.bytes) migration
 
 runVerify :: Log -> Opts.Verify -> IO ()
@@ -153,7 +149,7 @@ runMarkApplied log opts = do
         [ "action" .= ("mark-applied" :: String)
         , "record" .= script.id
         ]
-      Script.recordApplied opts.table script zeroInterval conn
+      Relocant.record opts.table script zeroInterval conn
 
 runDelete :: Log -> Opts.Delete -> IO ()
 runDelete log opts = do
@@ -173,8 +169,8 @@ runDeleteAll log opts = do
 
 verify :: Log -> DB.Table -> DB.Connection -> FilePath -> Maybe Fmt -> IO ()
 verify log table conn dir formatQ = do
-  migrations <- loadAll table conn dir
-  unless (Migration.Merge.converged migrations) $ do
+  migrations <- Relocant.mergeAll table conn dir
+  unless (Relocant.converged migrations) $ do
     Log.debug log
       [ "action" .= ("apply" :: String)
       , "unrecorded" .= map (.id) migrations.unrecorded
@@ -188,8 +184,8 @@ verify log table conn dir formatQ = do
 
 apply :: Log -> DB.Table -> DB.Connection -> FilePath -> IO ()
 apply log table conn scripts = do
-  migrations <- loadAll table conn scripts
-  unless (Migration.Merge.ready migrations) $ do
+  merged <- Relocant.mergeAll table conn scripts
+  unless (Relocant.canApply merged) $ do
     Log.error log
       [ "action" .= ("apply" :: String)
       , "result" .= ("not ready to apply the scripts, run `verify' first" :: String)
@@ -197,20 +193,20 @@ apply log table conn scripts = do
     exitFailure
   Log.info log
     [ "action" .= ("apply" :: String)
-    , "migrations" .= map (.id) migrations.unapplied
+    , "migrations" .= map (.id) merged.unapplied
     ]
-  for_ migrations.unapplied $ \script -> do
+  for_ merged.unapplied $ \script -> do
     DB.withTransaction conn $ do
       Log.info log
         [ "action" .= ("apply" :: String)
         , "run" .= script.id
         ]
-      durationS <- makeInterval_ (Script.run script conn)
+      durationS <- Relocant.apply script conn
       Log.info log
         [ "action" .= ("apply" :: String)
         , "record" .= script.id
         ]
-      Script.recordApplied table script durationS conn
+      Relocant.record table script durationS conn
 
 withLock
   :: (HasField "table" cfg DB.Table, HasField "connString" cfg DB.ConnectionString)
@@ -257,12 +253,6 @@ withTryLock log cfg m = do
       , "result" .= ("acquired" :: String)
       ]
     m conn
-
-loadAll :: DB.Table -> DB.Connection -> FilePath -> IO Migration.Merge.Result
-loadAll table conn dir = do
-  migrations <- Migration.loadAll table conn
-  scripts <- Script.listDirectory dir
-  pure (Migration.merge migrations scripts)
 
 println :: (Aeson.ToJSON a, ToText a) => Fmt -> a -> IO ()
 println = \case

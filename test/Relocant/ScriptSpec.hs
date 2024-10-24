@@ -15,9 +15,9 @@ import Relocant.Script
   ( Script(..)
   , parseFilePath
   , readContent
-  , listDirectory
-  , run
-  , recordApplied
+  , readAll
+  , apply
+  , record
   )
 import Relocant.Script qualified as Script (readFile)
 import Relocant.DB qualified as DB
@@ -67,7 +67,7 @@ spec = do
             , content = "abc"
             }
 
-  describe "listDirectory" $
+  describe "readAll" $
     it "lists all .sql files in a directory, ordered by ID" $
       withSystemTempDirectory Env.name $ \tmpDir -> do
         let
@@ -76,7 +76,7 @@ spec = do
         writeFile (file "01-abc.sql") "abc"
         writeFile (file "02-def.sql") "def"
         writeFile (file "00-oops.sql") "oops"
-        listDirectory tmpDir `shouldReturn`
+        readAll tmpDir `shouldReturn`
           [ Script
             { id = "00"
             , name = "00-oops"
@@ -95,7 +95,7 @@ spec = do
           ]
 
   around DB.withTemplateCloned $ do
-    describe "run" $
+    describe "apply" $
       it "runs a migration script" $ \conn -> do
         let
           script = Script
@@ -103,9 +103,10 @@ spec = do
             , name = "00-oops"
             , content = "CREATE TABLE foo ()"
             }
-        run script conn
+        _durationS <- apply script conn
+        pure ()
 
-    describe "recordApplied" $
+    describe "record" $
       it "stores the script in the DB" $ \conn -> do
         let
           script = Script
@@ -114,8 +115,8 @@ spec = do
             , content = "CREATE TABLE foo ()"
             }
         durationS <- makeInterval_ (pure ())
-        recordApplied DB.defaultTable script durationS conn
-        [m] <- Migration.loadAll DB.defaultTable conn
+        record DB.defaultTable script durationS conn
+        [m] <- Migration.selectAll DB.defaultTable conn
         m.id `shouldBe` "00"
         m.bytes `shouldBe` "CREATE TABLE foo ()"
 

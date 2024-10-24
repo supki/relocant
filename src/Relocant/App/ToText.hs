@@ -7,7 +7,7 @@ import Data.Text qualified as Text
 import Text.Printf (printf)
 
 import Relocant.Migration (Migration(..))
-import Relocant.Migration.Merge (Result(..), ContentMismatch(..))
+import Relocant.Migration.Merge (Merged(..), ContentMismatch(..))
 import Relocant.Migration.At qualified as At
 import Relocant.Script (Script(..))
 
@@ -29,7 +29,7 @@ instance ToText Migration where
         (At.format "%F %T %z" m.appliedAt)
         m.durationS)
 
-instance ToText Result where
+instance ToText Merged where
   toText r =
     Text.intercalate "\n" $ concat
       [ do guard (not (null r.unrecorded)); "unrecorded:" : map toText r.unrecorded

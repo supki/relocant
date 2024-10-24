@@ -28,6 +28,7 @@ custom-setup
 
 library
   exposed-modules:
+      Relocant
       Relocant.App
       Relocant.App.Env
       Relocant.App.Log
