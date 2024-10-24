@@ -16,6 +16,8 @@ module Relocant.Script
   ) where
 
 import "crypton" Crypto.Hash (Digest, SHA1, hash)
+import Data.Aeson qualified as Aeson
+import Data.Aeson ((.=))
 import Data.ByteArray (convert)
 import Data.ByteString (ByteString)
 import Data.ByteString qualified as ByteString
@@ -41,6 +43,14 @@ data Script = Script
   , name    :: Migration.Name
   , content :: Content
   } deriving (Show, Eq)
+
+instance Aeson.ToJSON Script where
+  toJSON s =
+    Aeson.object
+      [ "id" .= s.id
+      , "name" .= s.name
+      , "sha1" .= show s.sha1
+      ]
 
 instance HasField "bytes" Script ByteString where
   getField m =

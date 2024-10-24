@@ -32,8 +32,10 @@ library
       Relocant.App.Env
       Relocant.App.Log
       Relocant.App.Opts
+      Relocant.App.Opts.Fmt
       Relocant.App.Opts.Internal
       Relocant.App.Opts.Option
+      Relocant.App.ToText
       Relocant.DB
       Relocant.DB.Table
       Relocant.Migration

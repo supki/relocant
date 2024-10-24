@@ -14,6 +14,8 @@ module Relocant.Migration
   ) where
 
 import "crypton" Crypto.Hash (Digest, SHA1, digestFromByteString)
+import Data.Aeson qualified as Aeson
+import Data.Aeson ((.=))
 import Data.ByteString (ByteString)
 import Data.Maybe (listToMaybe)
 import Database.PostgreSQL.Simple qualified as DB
@@ -36,6 +38,16 @@ data Migration = Migration
   , appliedAt :: Migration.At
   , durationS :: Migration.Interval
   } deriving (Show, Eq)
+
+instance Aeson.ToJSON Migration where
+  toJSON m =
+    Aeson.object
+      [ "id" .= m.id
+      , "name" .= m.name
+      , "sha1" .= show m.sha1
+      , "applied_at" .= m.appliedAt
+      , "duration_s" .= m.durationS
+      ]
 
 loadAll :: DB.Table -> DB.Connection -> IO [Migration]
 loadAll table conn = do

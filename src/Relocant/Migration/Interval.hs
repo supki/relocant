@@ -7,18 +7,22 @@ module Relocant.Migration.Interval
   , zeroInterval
   ) where
 
+import Data.Aeson qualified as Aeson
 import Data.Time
   ( getCurrentTime
   , diffUTCTime
   )
 import Database.PostgreSQL.Simple.FromField qualified as DB (FromField(..))
 import Database.PostgreSQL.Simple.ToField qualified as DB (ToField(..))
+import Text.Printf (PrintfArg)
 
 
 newtype Interval = Interval Double
     deriving
       ( Show
       , Eq
+      , PrintfArg
+      , Aeson.ToJSON
       , DB.FromField
       , DB.ToField
       )

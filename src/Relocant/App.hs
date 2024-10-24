@@ -6,9 +6,12 @@ module Relocant.App
   ( run
   ) where
 
-import Control.Monad (unless)
+import Control.Monad (guard, unless)
 import Data.Aeson ((.=))
+import Data.Aeson qualified as Aeson
+import Data.ByteString.Lazy.Char8 qualified as ByteString.Lazy (putStrLn)
 import Data.Foldable (for_, traverse_)
+import Data.Text.IO qualified as Text
 import Database.PostgreSQL.Simple qualified as DB (Connection, withTransaction)
 import GHC.Records (HasField)
 import Prelude hiding (id, log)
@@ -18,6 +21,9 @@ import Relocant.App.Env qualified as Env
 import Relocant.App.Log (Log)
 import Relocant.App.Log qualified as Log
 import Relocant.App.Opts qualified as Opts
+import Relocant.App.Opts.Fmt (Fmt)
+import Relocant.App.Opts.Fmt qualified as Fmt
+import Relocant.App.ToText (ToText(..))
 import Relocant.DB qualified as DB
 import Relocant.Migration qualified as Migration
 import Relocant.Migration.Interval (makeInterval_, zeroInterval)
@@ -26,9 +32,7 @@ import Relocant.Migration.Merge qualified as Migration.Merge
 import Relocant.Script qualified as Script
 
 
--- --format (tsv / json)
 -- --with-content? we probably want to have separate commands for looking into a specific script/migration
---   unapplied --id ?
 --   applied --id ?
 
 run :: IO ()
@@ -44,13 +48,13 @@ runCmd log = \case
       [ "action" .= ("list-unapplied" :: String)
       , "opts" .= opts
       ]
-    runUnapplied log opts
+    runListUnapplied log opts
   Opts.ListApplied opts -> do
     Log.debug log
       [ "action" .= ("list-applied" :: String)
       , "opts" .= opts
       ]
-    runApplied log opts
+    runListApplied log opts
   Opts.Verify opts -> do
     Log.debug log
       [ "action" .= ("verify" :: String)
@@ -95,28 +99,28 @@ runInternalCmd log = \case
       ]
     runDeleteAll log opts
 
-runUnapplied :: Log -> Opts.Unapplied -> IO ()
-runUnapplied log opts = do
+runListUnapplied :: Log -> Opts.Unapplied -> IO ()
+runListUnapplied log opts = do
   withTryLock log opts $ \conn -> do
     migrations <- loadAll opts.table conn opts.scripts
-    traverse_ print migrations.unapplied
+    traverse_ (println opts.format) migrations.unapplied
 
-runApplied :: Log -> Opts.Applied -> IO ()
-runApplied log opts = do
+runListApplied :: Log -> Opts.Applied -> IO ()
+runListApplied log opts = do
   withTryLock log opts $ \conn -> do
     migrations <- Migration.loadAll opts.table conn
-    traverse_ print migrations
+    traverse_ (println opts.format) migrations
 
 runVerify :: Log -> Opts.Verify -> IO ()
 runVerify log opts = do
   withTryLock log opts $ \conn -> do
-    verify log opts.table conn opts.scripts opts.quiet
+    verify log opts.table conn opts.scripts (opts.format <$ guard (not opts.quiet))
 
 runApply :: Log -> Opts.Apply -> IO ()
 runApply log opts = do
   withLock log opts $ \conn -> do
     apply log opts.table conn opts.scripts
-    verify log opts.table conn opts.scripts False
+    verify log opts.table conn opts.scripts Nothing
 
 runDumpSchema :: Opts.DumpSchema -> IO ()
 runDumpSchema _opts =
@@ -154,30 +158,19 @@ runDeleteAll log opts = do
   withTryLock log opts $ \conn -> do
     Migration.deleteAll opts.table conn
 
-verify :: Log -> DB.Table -> DB.Connection -> FilePath -> Bool -> IO ()
-verify log table conn dir quiet = do
+verify :: Log -> DB.Table -> DB.Connection -> FilePath -> Maybe Fmt -> IO ()
+verify log table conn dir formatQ = do
   migrations <- loadAll table conn dir
   unless (Migration.Merge.converged migrations) $ do
     Log.debug log
       [ "action" .= ("apply" :: String)
       , "unrecorded" .= map (.id) migrations.unrecorded
       , "script-missing" .= map (.id) migrations.scriptMissing
-      , "content-mismatch" .= map (\(s, m) -> (s.id, m.id)) migrations.contentMismatch
+      , "content-mismatch" .= map (\cm -> (cm.expected.id, cm.butGot.id)) migrations.contentMismatch
       , "unapplied" .= map (.id) migrations.unapplied
       ]
-    unless quiet $ do
-      unless (null migrations.unrecorded) $ do
-        putStrLn "unrecorded:"
-        traverse_ print migrations.unrecorded
-      unless (null migrations.scriptMissing) $ do
-        putStrLn "script missing:"
-        traverse_ print migrations.scriptMissing
-      unless (null migrations.contentMismatch) $ do
-        putStrLn "content mismatch:"
-        traverse_ print migrations.contentMismatch
-      unless (null migrations.unapplied) $ do
-        putStrLn "unapplied:"
-        traverse_ print migrations.unapplied
+    for_ formatQ $ \format -> do
+      println format migrations
     exitFailure
 
 apply :: Log -> DB.Table -> DB.Connection -> FilePath -> IO ()
@@ -256,4 +249,11 @@ loadAll :: DB.Table -> DB.Connection -> FilePath -> IO Migration.Merge.Result
 loadAll table conn dir = do
   migrations <- Migration.loadAll table conn
   scripts <- Script.listDirectory dir
-  pure (Migration.merge migrations scripts)                
+  pure (Migration.merge migrations scripts)
+
+println :: (Aeson.ToJSON a, ToText a) => Fmt -> a -> IO ()
+println = \case
+  Fmt.Json ->
+    ByteString.Lazy.putStrLn . Aeson.encode
+  Fmt.Text ->
+    Text.putStrLn . toText

@@ -28,6 +28,7 @@ import Meta_relocant qualified as Meta
 import Relocant.DB (ConnectionString, Table)
 import Relocant.App.Env (Env)
 import Relocant.App.Log qualified as Log
+import Relocant.App.Opts.Fmt (Fmt)
 import Relocant.App.Opts.Option qualified as O
 import Relocant.App.Opts.Internal (InternalCmd(..))
 import Relocant.App.Opts.Internal qualified as Internal
@@ -50,6 +51,7 @@ data Unapplied = MkUnapplied
   { connString :: ConnectionString
   , table      :: Table
   , scripts    :: FilePath
+  , format     :: Fmt
   } deriving (Show, Eq, Generic)
 
 instance Aeson.ToJSON Unapplied where
@@ -58,6 +60,7 @@ instance Aeson.ToJSON Unapplied where
 data Applied = MkApplied
   { connString :: ConnectionString
   , table      :: Table
+  , format     :: Fmt
   } deriving (Show, Eq, Generic)
 
 instance Aeson.ToJSON Applied where
@@ -68,6 +71,7 @@ data Verify = MkVerify
   , table      :: Table
   , scripts    :: FilePath
   , quiet      :: Bool
+  , format     :: Fmt
   } deriving (Show, Eq, Generic)
 
 instance Aeson.ToJSON Verify where
@@ -127,12 +131,14 @@ listUnappliedP env = do
   connString <- O.connectionString
   table <- O.table env
   scripts <- O.scripts env
+  format <- O.fmt
   pure (ListUnapplied MkUnapplied {..})
 
 listAppliedP :: Env -> Parser Cmd
 listAppliedP env = do
   connString <- O.connectionString
   table <- O.table env
+  format <- O.fmt
   pure (ListApplied MkApplied {..})
 
 verifyP :: Env -> Parser Cmd
@@ -141,6 +147,7 @@ verifyP env = do
   table <- O.table env
   scripts <- O.scripts env
   quiet <- switch (short 'q' <> long "quiet" <> help "do not output the problems")
+  format <- O.fmt
   pure (Verify MkVerify {..})
 
 applyP :: Env -> Parser Cmd

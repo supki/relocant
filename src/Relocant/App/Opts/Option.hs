@@ -1,6 +1,7 @@
 {-# LANGUAGE LambdaCase #-}
 module Relocant.App.Opts.Option
-  ( minSeverity
+  ( fmt
+  , minSeverity
   , connectionString
   , table
   , scripts
@@ -13,9 +14,18 @@ import Prelude hiding (id)
 
 import Relocant.App.Env (Env(..))
 import Relocant.App.Log qualified as Log
+import Relocant.App.Opts.Fmt (Fmt)
+import Relocant.App.Opts.Fmt qualified as Fmt
 import Relocant.DB (ConnectionString, Table)
 import Relocant.Migration qualified as Migration
 
+
+fmt :: Parser Fmt
+fmt =
+  option Fmt.reader
+    ( long "format"
+   <> value Fmt.Text
+    )
 
 minSeverity :: Parser Log.Severity
 minSeverity =
@@ -38,7 +48,7 @@ minSeverity =
       "error" ->
         pure Log.Error
       _ ->
-        Left "unknown severity, possible values: debug, info, notice, warning, error"
+        Left "unknown severity; possible values: debug, info, notice, warning, error"
 
 connectionString :: Parser ConnectionString
 connectionString =
