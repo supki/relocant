@@ -9,8 +9,9 @@ module Relocant.App.Opts
   , Cmd(..)
   , InternalCmd(..)
   , parse
-  , Unapplied(..)
-  , Applied(..)
+  , ListUnapplied(..)
+  , ListApplied(..)
+  , ShowApplied(..)
   , Verify(..)
   , Apply(..)
   , Internal.DumpSchema(..)
@@ -26,6 +27,7 @@ import Prelude hiding (id)
 
 import Meta_relocant qualified as Meta
 import Relocant.DB (ConnectionString, Table)
+import Relocant.Migration qualified as Migration
 import Relocant.App.Env (Env)
 import Relocant.App.Log qualified as Log
 import Relocant.App.Opts.Fmt (Fmt)
@@ -39,31 +41,41 @@ data Cfg = Cfg
   } deriving (Show, Eq)
 
 data Cmd
-  = ListUnapplied Unapplied
-  | ListApplied Applied
+  = ListUnapplied ListUnapplied
+  | ListApplied ListApplied
+  | ShowApplied ShowApplied
   | Verify Verify
   | Apply Apply
   | Version String
   | Internal InternalCmd
     deriving (Show, Eq)
 
-data Unapplied = MkUnapplied
+data ListUnapplied = MkListUnapplied
   { connString :: ConnectionString
   , table      :: Table
   , scripts    :: FilePath
   , format     :: Fmt
   } deriving (Show, Eq, Generic)
 
-instance Aeson.ToJSON Unapplied where
+instance Aeson.ToJSON ListUnapplied where
   toJSON = toJSONG
 
-data Applied = MkApplied
+data ListApplied = MkListApplied
   { connString :: ConnectionString
   , table      :: Table
   , format     :: Fmt
   } deriving (Show, Eq, Generic)
 
-instance Aeson.ToJSON Applied where
+instance Aeson.ToJSON ListApplied where
+  toJSON = toJSONG
+
+data ShowApplied = MkShowApplied
+  { connString :: ConnectionString
+  , table      :: Table
+  , id         :: Migration.ID
+  } deriving (Show, Eq, Generic)
+
+instance Aeson.ToJSON ShowApplied where
   toJSON = toJSONG
 
 data Verify = MkVerify
@@ -110,6 +122,8 @@ parser env = do
       (info (listUnappliedP env) (progDesc "list unapplied migrations"))
    <> command "list-applied"
       (info (listAppliedP env) (progDesc "list applied migrations"))
+   <> command "show-applied"
+      (info (showAppliedP env) (progDesc "show the contents of an applied migration"))
    <> command "verify"
       (info (verifyP env) (progDesc "verify that there are no unapplied migrations"))
    <> command "apply"
@@ -132,14 +146,21 @@ listUnappliedP env = do
   table <- O.table env
   scripts <- O.scripts env
   format <- O.fmt
-  pure (ListUnapplied MkUnapplied {..})
+  pure (ListUnapplied MkListUnapplied {..})
 
 listAppliedP :: Env -> Parser Cmd
 listAppliedP env = do
   connString <- O.connectionString
   table <- O.table env
   format <- O.fmt
-  pure (ListApplied MkApplied {..})
+  pure (ListApplied MkListApplied {..})
+
+showAppliedP :: Env -> Parser Cmd
+showAppliedP env = do
+  connString <- O.connectionString
+  table <- O.table env
+  id <- O.id
+  pure (ShowApplied MkShowApplied {..})
 
 verifyP :: Env -> Parser Cmd
 verifyP env = do

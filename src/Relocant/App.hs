@@ -9,6 +9,7 @@ module Relocant.App
 import Control.Monad (guard, unless)
 import Data.Aeson ((.=))
 import Data.Aeson qualified as Aeson
+import Data.ByteString.Char8 qualified as ByteString (putStr)
 import Data.ByteString.Lazy.Char8 qualified as ByteString.Lazy (putStrLn)
 import Data.Foldable (for_, traverse_)
 import Data.Text.IO qualified as Text
@@ -55,6 +56,12 @@ runCmd log = \case
       , "opts" .= opts
       ]
     runListApplied log opts
+  Opts.ShowApplied opts -> do
+    Log.debug log
+      [ "action" .= ("show-applied" :: String)
+      , "opts" .= opts
+      ]
+    runShowApplied log opts
   Opts.Verify opts -> do
     Log.debug log
       [ "action" .= ("verify" :: String)
@@ -99,17 +106,23 @@ runInternalCmd log = \case
       ]
     runDeleteAll log opts
 
-runListUnapplied :: Log -> Opts.Unapplied -> IO ()
+runListUnapplied :: Log -> Opts.ListUnapplied -> IO ()
 runListUnapplied log opts = do
   withTryLock log opts $ \conn -> do
     migrations <- loadAll opts.table conn opts.scripts
     traverse_ (println opts.format) migrations.unapplied
 
-runListApplied :: Log -> Opts.Applied -> IO ()
+runListApplied :: Log -> Opts.ListApplied -> IO ()
 runListApplied log opts = do
   withTryLock log opts $ \conn -> do
     migrations <- Migration.loadAll opts.table conn
     traverse_ (println opts.format) migrations
+
+runShowApplied :: Log -> Opts.ShowApplied -> IO ()
+runShowApplied log opts = do
+  withTryLock log opts $ \conn -> do
+    migration <- Migration.loadByID opts.id opts.table conn
+    maybe exitFailure (\m -> ByteString.putStr m.bytes) migration
 
 runVerify :: Log -> Opts.Verify -> IO ()
 runVerify log opts = do
