@@ -39,7 +39,7 @@ library
       Relocant.App.ToText
       Relocant.DB
       Relocant.DB.Table
-      Relocant.Migration
+      Relocant.Migration.Applied
       Relocant.Migration.At
       Relocant.Migration.Duration
       Relocant.Migration.ID
@@ -96,9 +96,9 @@ test-suite spec
   type: exitcode-stdio-1.0
   main-is: Main.hs
   other-modules:
+      Relocant.Migration.AppliedSpec
       Relocant.Migration.DurationSpec
       Relocant.Migration.MergeSpec
-      Relocant.MigrationSpec
       Relocant.ScriptSpec
       Spec
       SpecHelper.DB

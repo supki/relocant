@@ -31,7 +31,7 @@ import Prelude hiding (id, readFile)
 import System.Directory qualified as D
 import System.FilePath ((</>), isExtensionOf, takeBaseName)
 
-import Relocant.Migration (Migration(..))
+import Relocant.Migration.Applied (Applied(..))
 import Relocant.Migration.At qualified as Migration (At)
 import Relocant.Migration.At qualified as Migration.At
 import Relocant.Migration.ID qualified as Migration (ID)
@@ -55,12 +55,12 @@ instance Aeson.ToJSON Script where
       ]
 
 instance HasField "bytes" Script ByteString where
-  getField m =
-    m.content.bytes
+  getField s =
+    s.content.bytes
 
 instance HasField "sha1" Script (Digest SHA1) where
-  getField m =
-    m.content.sha1
+  getField s =
+    s.content.sha1
 
 data Content = Content
   { bytes :: ByteString
@@ -108,22 +108,22 @@ parseFilePath path = do
       span Char.isAlphaNum basename
   (fromString id, fromString basename)
 
-applyWith :: (ByteString -> IO x) -> Script -> IO Migration
+applyWith :: (ByteString -> IO x) -> Script -> IO Applied
 applyWith f s = do
   appliedAt <- Migration.At.now
   durationS <- Migration.Duration.measure_ (f s.bytes)
   pure (applied s appliedAt durationS)
 
-apply :: Script -> DB.Connection -> IO Migration
+apply :: Script -> DB.Connection -> IO Applied
 apply s conn = do
   applyWith (DB.execute_ conn . DB.Query) s
 
-markApplied :: Script -> IO Migration
+markApplied :: Script -> IO Applied
 markApplied =
   applyWith (\_bytes -> pure Migration.Duration.zeroS)
 
-applied :: Script -> Migration.At -> Migration.Duration -> Migration
-applied s appliedAt durationS = Migration
+applied :: Script -> Migration.At -> Migration.Duration -> Applied
+applied s appliedAt durationS = Applied
   { id = s.id
   , name = s.name
   , bytes = s.bytes

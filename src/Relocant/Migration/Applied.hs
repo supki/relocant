@@ -4,8 +4,8 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE ViewPatterns #-}
-module Relocant.Migration
-  ( Migration(..)
+module Relocant.Migration.Applied
+  ( Applied(..)
   , Migration.ID
   , selectAll
   , selectByID
@@ -32,7 +32,7 @@ import Relocant.Migration.Name qualified as Migration (Name)
 import Relocant.Migration.Duration qualified as Migration (Duration)
 
 
-data Migration = Migration
+data Applied = Applied
   { id        :: Migration.ID
   , name      :: Migration.Name
   , bytes     :: ByteString
@@ -41,19 +41,19 @@ data Migration = Migration
   , durationS :: Migration.Duration
   } deriving (Show, Eq)
 
-instance Aeson.ToJSON Migration where
-  toJSON m =
+instance Aeson.ToJSON Applied where
+  toJSON a =
     Aeson.object
-      [ "id" .= m.id
-      , "name" .= m.name
-      , "sha1" .= show m.sha1
-      , "applied_at" .= m.appliedAt
-      , "duration_s" .= m.durationS
+      [ "id" .= a.id
+      , "name" .= a.name
+      , "sha1" .= show a.sha1
+      , "applied_at" .= a.appliedAt
+      , "duration_s" .= a.durationS
       ]
 
-selectAll :: DB.Table -> DB.Connection -> IO [Migration]
+selectAll :: DB.Table -> DB.Connection -> IO [Applied]
 selectAll table conn = do
-  DB.queryWith migrationP conn [DB.sql|
+  DB.queryWith appliedP conn [DB.sql|
     SELECT id
          , name
          , bytes
@@ -64,9 +64,9 @@ selectAll table conn = do
   ORDER BY id
   |] (DB.Only table)
 
-selectByID :: Migration.ID -> DB.Table -> DB.Connection -> IO (Maybe Migration)
+selectByID :: Migration.ID -> DB.Table -> DB.Connection -> IO (Maybe Applied)
 selectByID id table conn = do
-  ms <- DB.queryWith migrationP conn [DB.sql|
+  ms <- DB.queryWith appliedP conn [DB.sql|
     SELECT id
          , name
          , bytes
@@ -78,8 +78,8 @@ selectByID id table conn = do
   |] (table, id)
   pure (listToMaybe ms)
 
-record :: Migration -> DB.Table -> DB.Connection -> IO ()
-record m table conn = do
+record :: Applied -> DB.Table -> DB.Connection -> IO ()
+record a table conn = do
   1 <- DB.execute conn [DB.sql|
     INSERT INTO ?
               ( id
@@ -96,12 +96,12 @@ record m table conn = do
               , ?
               , make_interval(secs := ?)
   |] ( table
-     , m.id
-     , m.name
-     , DB.Binary m.bytes
-     , DB.Binary (convert @_ @ByteString m.sha1)
-     , m.appliedAt
-     , m.durationS
+     , a.id
+     , a.name
+     , DB.Binary a.bytes
+     , DB.Binary (convert @_ @ByteString a.sha1)
+     , a.appliedAt
+     , a.durationS
      )
   pure ()
 
@@ -120,8 +120,8 @@ deleteByID id table conn = do
   |] (table, id)
   pure (rows > 0)
 
-migrationP :: DB.RowParser Migration
-migrationP = do
+appliedP :: DB.RowParser Applied
+appliedP = do
   id <- DB.field
   name <- DB.field
   DB.Binary bytes <- DB.field
@@ -131,4 +131,4 @@ migrationP = do
       digestFromByteString @_ @ByteString bs
   appliedAt <- DB.field
   durationS <- DB.field
-  pure Migration {..}
+  pure Applied {..}

@@ -27,7 +27,7 @@ import Relocant.App.Opts.Fmt (Fmt)
 import Relocant.App.Opts.Fmt qualified as Fmt
 import Relocant.App.ToText (ToText(..))
 import Relocant.DB qualified as DB (ConnectionString, Table, connect, dumpSchema, withLock, withTryLock)
-import Relocant.Migration qualified as Migration (selectByID, deleteAll, deleteByID)
+import Relocant.Migration.Applied qualified as Applied (selectByID, deleteAll, deleteByID)
 import Relocant.Script qualified as Script (readFile, markApplied)
 
 
@@ -116,8 +116,8 @@ runListApplied log opts = do
 runShowApplied :: Log -> Opts.ShowApplied -> IO ()
 runShowApplied log opts = do
   withTryLock log opts $ \conn -> do
-    migration <- Migration.selectByID opts.id opts.table conn
-    maybe exitFailure (\m -> ByteString.putStr m.bytes) migration
+    applied <- Applied.selectByID opts.id opts.table conn
+    maybe exitFailure (\a -> ByteString.putStr a.bytes) applied
 
 runVerify :: Log -> Opts.Verify -> IO ()
 runVerify log opts = do
@@ -143,7 +143,7 @@ runMarkApplied log opts = do
         [ "action" .= ("mark-applied" :: String)
         , "delete" .= script.id
         ]
-      _deleted <- Migration.deleteByID script.id opts.table conn
+      _deleted <- Applied.deleteByID script.id opts.table conn
       Log.info log
         [ "action" .= ("mark-applied" :: String)
         , "record" .= script.id
@@ -154,7 +154,7 @@ runMarkApplied log opts = do
 runDelete :: Log -> Opts.Delete -> IO ()
 runDelete log opts = do
   withTryLock log opts $ \conn -> do
-    deleted <- Migration.deleteByID opts.id opts.table conn
+    deleted <- Applied.deleteByID opts.id opts.table conn
     unless deleted $ do
       Log.notice log
         [ "action" .= ("delete" :: String)
@@ -165,7 +165,7 @@ runDelete log opts = do
 runDeleteAll :: Log -> Opts.DeleteAll -> IO ()
 runDeleteAll log opts = do
   withTryLock log opts $ \conn -> do
-    Migration.deleteAll opts.table conn
+    Applied.deleteAll opts.table conn
 
 verify :: Log -> DB.Table -> DB.Connection -> FilePath -> Maybe Fmt -> IO ()
 verify log table conn dir formatQ = do

@@ -10,7 +10,7 @@ module Relocant.Migration.Merge
 
 import Data.Aeson qualified as Aeson
 import Data.Aeson ((.=))
-import Relocant.Migration (Migration(..))
+import Relocant.Migration.Applied (Applied(..))
 import Relocant.Script (Script(..))
 
 
@@ -19,7 +19,7 @@ data Merged = Merged
     -- ^ a script that does not have a corresponding
     -- recorded migration, when there is a recorded migration
     -- with a higher ID
-  , scriptMissing   :: [Migration]
+  , scriptMissing   :: [Applied]
     -- ^ a recorded migration that does not have a
     -- corresponding script
   , contentMismatch :: [ContentMismatch]
@@ -40,7 +40,7 @@ instance Aeson.ToJSON Merged where
        ]
 
 data ContentMismatch = ContentMismatch
-  { expected :: Migration
+  { expected :: Applied
   , butGot   :: Script
   } deriving (Show, Eq)
 
@@ -61,30 +61,30 @@ converged = \case
   Merged {unrecorded = [], scriptMissing = [], contentMismatch = [], unapplied = []} -> True
   _ -> False
 
-merge :: [Migration] -> [Script] -> Merged
-merge migrations scripts =
-  fromAcc (go ([], [], []) migrations scripts)
+merge :: [Applied] -> [Script] -> Merged
+merge applieds scripts =
+  fromAcc (go ([], [], []) applieds scripts)
  where
   go
-    :: ([Script], [Migration], [ContentMismatch])
-    -> [Migration]
+    :: ([Script], [Applied], [ContentMismatch])
+    -> [Applied]
     -> [Script]
-    -> ([Script], [Migration], [ContentMismatch], [Script])
+    -> ([Script], [Applied], [ContentMismatch], [Script])
   go (unrecorded, scriptMissing, contentMismatch) [] ss =
     (unrecorded, scriptMissing, contentMismatch, ss)
-  go (unrecorded, scriptMissing, contentMismatch) ms [] =
-    (unrecorded, scriptMissing <> ms, contentMismatch, [])
-  go (unrecorded, scriptMissing, contentMismatch) (m : ms) (s : ss) =
-    case compare m.id s.id of
+  go (unrecorded, scriptMissing, contentMismatch) as [] =
+    (unrecorded, scriptMissing <> as, contentMismatch, [])
+  go (unrecorded, scriptMissing, contentMismatch) (a : as) (s : ss) =
+    case compare a.id s.id of
       LT ->
-        go (unrecorded, m : scriptMissing, contentMismatch) ms (s : ss)
+        go (unrecorded, a : scriptMissing, contentMismatch) as (s : ss)
       EQ
-        | s.sha1 == m.sha1 ->
-          go (unrecorded, scriptMissing, contentMismatch) ms ss
+        | a.sha1 == s.sha1 ->
+          go (unrecorded, scriptMissing, contentMismatch) as ss
         | otherwise ->
-          go (unrecorded, scriptMissing, ContentMismatch m s : contentMismatch) ms ss
+          go (unrecorded, scriptMissing, ContentMismatch a s : contentMismatch) as ss
       GT ->
-        go (s : unrecorded, scriptMissing, contentMismatch) (m : ms) ss
+        go (s : unrecorded, scriptMissing, contentMismatch) (a : as) ss
 
   fromAcc (unrecorded, unscripted, contentMismatch, unapplied) = Merged
     { unrecorded = reverse unrecorded

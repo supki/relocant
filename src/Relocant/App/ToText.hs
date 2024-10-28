@@ -6,7 +6,7 @@ import Data.Text (Text)
 import Data.Text qualified as Text
 import Text.Printf (printf)
 
-import Relocant.Migration (Migration(..))
+import Relocant.Migration.Applied (Applied(..))
 import Relocant.Migration.Merge (Merged(..), ContentMismatch(..))
 import Relocant.Migration.At qualified as At
 import Relocant.Script (Script(..))
@@ -19,15 +19,15 @@ instance ToText Script where
   toText s =
     fromString (printf "%s\t%s\t%s" s.id s.name (take 8 (show s.sha1)))
 
-instance ToText Migration where
-  toText m =
+instance ToText Applied where
+  toText a =
     fromString
       (printf "%s\t%s\t%s\t%s\t%.2fs"
-        m.id
-        m.name
-        (take 8 (show m.sha1))
-        (At.format "%F %T %z" m.appliedAt)
-        m.durationS)
+        a.id
+        a.name
+        (take 8 (show a.sha1))
+        (At.format "%F %T %z" a.appliedAt)
+        a.durationS)
 
 instance ToText Merged where
   toText r =

@@ -7,7 +7,7 @@ module Relocant
   , DB.withLock
   , DB.withTryLock
 
-  , Migration(..)
+  , Applied(..)
   , Migration.ID
   , Migration.Name
   , DB.Table
@@ -22,7 +22,7 @@ module Relocant
   , Migration.Merge.converged
 
   , Script.apply
-  , Migration.record
+  , Applied.record
   ) where
 
 import Database.PostgreSQL.Simple (Connection)
@@ -31,18 +31,19 @@ import Relocant.DB qualified as DB (ConnectionString, connect, withLock, withTry
 import Relocant.DB.Table qualified as DB (Table, defaultTable)
 import Relocant.Script (Script(..))
 import Relocant.Script qualified as Script
-import Relocant.Migration (Migration)
-import Relocant.Migration qualified as Migration
-import Relocant.Migration.Name qualified as Migration (Name)
+import Relocant.Migration.Applied (Applied)
+import Relocant.Migration.Applied qualified as Applied
+import Relocant.Migration.ID qualified as Migration (ID)
 import Relocant.Migration.Merge qualified as Migration (merge)
 import Relocant.Migration.Merge qualified as Migration.Merge
+import Relocant.Migration.Name qualified as Migration (Name)
 
 
 readScripts :: FilePath -> IO [Script]
 readScripts = Script.readAll
 
-getApplied :: DB.Table -> Connection -> IO [Migration]
-getApplied = Migration.selectAll
+getApplied :: DB.Table -> Connection -> IO [Applied]
+getApplied = Applied.selectAll
 
 mergeAll :: DB.Table -> Connection -> FilePath -> IO Migration.Merge.Merged
 mergeAll table conn dir = do

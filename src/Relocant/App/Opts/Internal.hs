@@ -21,7 +21,7 @@ import Prelude hiding (id)
 import Relocant.App.Env (Env)
 import Relocant.App.Opts.Option qualified as O
 import Relocant.DB (ConnectionString, Table)
-import Relocant.Migration qualified as Migration
+import Relocant.Migration.ID qualified as Migration (ID)
 
 
 data InternalCmd

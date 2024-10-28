@@ -17,7 +17,7 @@ import Relocant.App.Log qualified as Log
 import Relocant.App.Opts.Fmt (Fmt)
 import Relocant.App.Opts.Fmt qualified as Fmt
 import Relocant.DB (ConnectionString, Table)
-import Relocant.Migration qualified as Migration
+import Relocant.Migration.ID qualified as Migration (ID)
 
 
 fmt :: Parser Fmt

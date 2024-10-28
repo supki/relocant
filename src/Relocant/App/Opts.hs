@@ -27,7 +27,7 @@ import Prelude hiding (id)
 
 import Meta_relocant qualified as Meta
 import Relocant.DB (ConnectionString, Table)
-import Relocant.Migration qualified as Migration
+import Relocant.Migration.ID qualified as Migration (ID)
 import Relocant.App.Env (Env)
 import Relocant.App.Log qualified as Log
 import Relocant.App.Opts.Fmt (Fmt)
