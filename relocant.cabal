@@ -41,8 +41,8 @@ library
       Relocant.DB.Table
       Relocant.Migration
       Relocant.Migration.At
+      Relocant.Migration.Duration
       Relocant.Migration.ID
-      Relocant.Migration.Interval
       Relocant.Migration.Merge
       Relocant.Migration.Name
       Relocant.Script
@@ -96,7 +96,7 @@ test-suite spec
   type: exitcode-stdio-1.0
   main-is: Main.hs
   other-modules:
-      Relocant.Migration.IntervalSpec
+      Relocant.Migration.DurationSpec
       Relocant.Migration.MergeSpec
       Relocant.MigrationSpec
       Relocant.ScriptSpec

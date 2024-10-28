@@ -10,7 +10,7 @@ import Test.Hspec
 
 import Relocant.Migration (Migration(..))
 import Relocant.Migration.At (epoch)
-import Relocant.Migration.Interval (zeroInterval)
+import Relocant.Migration.Duration (zeroS)
 import Relocant.Migration.Merge (Merged(..), ContentMismatch(..), merge)
 import Relocant.Script (Script(..))
 
@@ -24,7 +24,7 @@ spec = do
       , bytes = "m1"
       , sha1 = hash @ByteString @SHA1 (fromString "m0")
       , appliedAt = epoch
-      , durationS = zeroInterval
+      , durationS = zeroS
       }
     m2 = Migration
       { id = "02"
@@ -32,7 +32,7 @@ spec = do
       , bytes = "m2"
       , sha1 = hash @ByteString @SHA1 (fromString "m2")
       , appliedAt = epoch
-      , durationS = zeroInterval
+      , durationS = zeroS
       }
     s0 = Script
       { id = "000"

@@ -1,10 +1,10 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE TypeApplications #-}
-module Relocant.Migration.Interval
-  ( Interval(..)
-  , makeInterval
-  , makeInterval_
-  , zeroInterval
+module Relocant.Migration.Duration
+  ( Duration(..)
+  , measure
+  , measure_
+  , zeroS
   ) where
 
 import Data.Aeson qualified as Aeson
@@ -17,7 +17,7 @@ import Database.PostgreSQL.Simple.ToField qualified as DB (ToField(..))
 import Text.Printf (PrintfArg)
 
 
-newtype Interval = Interval Double
+newtype Duration = Duration Double
     deriving
       ( Show
       , Eq
@@ -27,18 +27,18 @@ newtype Interval = Interval Double
       , DB.ToField
       )
 
-makeInterval_:: IO x -> IO Interval
-makeInterval_ m = do
-  (t, _a) <- makeInterval m
-  pure t
-
-makeInterval :: IO a -> IO (Interval, a)
-makeInterval m = do
+measure :: IO a -> IO (Duration, a)
+measure m = do
   t0 <- getCurrentTime
   a <- m
   t1 <- getCurrentTime
-  pure (Interval (realToFrac (t1 `diffUTCTime` t0)), a)
+  pure (Duration (realToFrac (t1 `diffUTCTime` t0)), a)
 
-zeroInterval :: Interval
-zeroInterval =
-  Interval 0
+measure_ :: IO x -> IO Duration
+measure_ m = do
+  (t, _x) <- measure m
+  pure t
+
+zeroS :: Duration
+zeroS =
+  Duration 0

@@ -29,7 +29,7 @@ import Relocant.DB qualified as DB (Table)
 import Relocant.Migration.At qualified as Migration (At)
 import Relocant.Migration.ID qualified as Migration (ID)
 import Relocant.Migration.Name qualified as Migration (Name)
-import Relocant.Migration.Interval qualified as Migration (Interval)
+import Relocant.Migration.Duration qualified as Migration (Duration)
 
 
 data Migration = Migration
@@ -38,7 +38,7 @@ data Migration = Migration
   , bytes     :: ByteString
   , sha1      :: Digest SHA1
   , appliedAt :: Migration.At
-  , durationS :: Migration.Interval
+  , durationS :: Migration.Duration
   } deriving (Show, Eq)
 
 instance Aeson.ToJSON Migration where

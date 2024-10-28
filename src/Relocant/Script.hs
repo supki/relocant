@@ -35,8 +35,8 @@ import Relocant.Migration (Migration(..))
 import Relocant.Migration.At qualified as Migration (At)
 import Relocant.Migration.At qualified as Migration.At
 import Relocant.Migration.ID qualified as Migration (ID)
-import Relocant.Migration.Interval (makeInterval_, zeroInterval)
-import Relocant.Migration.Interval qualified as Migration (Interval)
+import Relocant.Migration.Duration qualified as Migration (Duration)
+import Relocant.Migration.Duration qualified as Migration.Duration
 import Relocant.Migration.Name qualified as Migration (Name)
 
 
@@ -111,7 +111,7 @@ parseFilePath path = do
 applyWith :: (ByteString -> IO x) -> Script -> IO Migration
 applyWith f s = do
   appliedAt <- Migration.At.now
-  durationS <- makeInterval_ (f s.bytes)
+  durationS <- Migration.Duration.measure_ (f s.bytes)
   pure (applied s appliedAt durationS)
 
 apply :: Script -> DB.Connection -> IO Migration
@@ -120,9 +120,9 @@ apply s conn = do
 
 markApplied :: Script -> IO Migration
 markApplied =
-  applyWith (\_bytes -> pure zeroInterval)
+  applyWith (\_bytes -> pure Migration.Duration.zeroS)
 
-applied :: Script -> Migration.At -> Migration.Interval -> Migration
+applied :: Script -> Migration.At -> Migration.Duration -> Migration
 applied s appliedAt durationS = Migration
   { id = s.id
   , name = s.name
