@@ -6,9 +6,9 @@ import Data.Text (Text)
 import Data.Text qualified as Text
 import Text.Printf (printf)
 
-import Relocant.Migration.Applied (Applied(..))
-import Relocant.Migration.Merge (Merged(..), ContentMismatch(..))
-import Relocant.Migration.At qualified as At
+import Relocant.Applied (Applied(..))
+import Relocant.At qualified as At
+import Relocant.Merge (Merged(..), ContentMismatch(..))
 import Relocant.Script (Script(..))
 
 

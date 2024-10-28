@@ -31,18 +31,18 @@ import Prelude hiding (id, readFile)
 import System.Directory qualified as D
 import System.FilePath ((</>), isExtensionOf, takeBaseName)
 
-import Relocant.Migration.Applied (Applied(..))
-import Relocant.Migration.At qualified as Migration (At)
-import Relocant.Migration.At qualified as Migration.At
-import Relocant.Migration.ID qualified as Migration (ID)
-import Relocant.Migration.Duration qualified as Migration (Duration)
-import Relocant.Migration.Duration qualified as Migration.Duration
-import Relocant.Migration.Name qualified as Migration (Name)
+import Relocant.Applied (Applied(..))
+import Relocant.At (At)
+import Relocant.At qualified as At
+import Relocant.ID (ID)
+import Relocant.Duration (Duration)
+import Relocant.Duration qualified as Duration
+import Relocant.Name (Name)
 
 
 data Script = Script
-  { id      :: Migration.ID
-  , name    :: Migration.Name
+  { id      :: ID
+  , name    :: Name
   , content :: Content
   } deriving (Show, Eq)
 
@@ -99,7 +99,7 @@ readContent path = do
     , sha1 = hash bytes
     }
 
-parseFilePath :: FilePath -> (Migration.ID, Migration.Name)
+parseFilePath :: FilePath -> (ID, Name)
 parseFilePath path = do
   let
     basename =
@@ -110,8 +110,8 @@ parseFilePath path = do
 
 applyWith :: (ByteString -> IO x) -> Script -> IO Applied
 applyWith f s = do
-  appliedAt <- Migration.At.now
-  durationS <- Migration.Duration.measure_ (f s.bytes)
+  appliedAt <- At.now
+  durationS <- Duration.measure_ (f s.bytes)
   pure (applied s appliedAt durationS)
 
 apply :: Script -> DB.Connection -> IO Applied
@@ -120,9 +120,9 @@ apply s conn = do
 
 markApplied :: Script -> IO Applied
 markApplied =
-  applyWith (\_bytes -> pure Migration.Duration.zeroS)
+  applyWith (\_bytes -> pure Duration.zeroS)
 
-applied :: Script -> Migration.At -> Migration.Duration -> Applied
+applied :: Script -> At -> Duration -> Applied
 applied s appliedAt durationS = Applied
   { id = s.id
   , name = s.name

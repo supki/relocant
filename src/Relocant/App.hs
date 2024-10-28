@@ -26,8 +26,8 @@ import Relocant.App.Opts qualified as Opts
 import Relocant.App.Opts.Fmt (Fmt)
 import Relocant.App.Opts.Fmt qualified as Fmt
 import Relocant.App.ToText (ToText(..))
+import Relocant.Applied qualified as Applied (selectByID, deleteAll, deleteByID)
 import Relocant.DB qualified as DB (ConnectionString, Table, connect, dumpSchema, withLock, withTryLock)
-import Relocant.Migration.Applied qualified as Applied (selectByID, deleteAll, deleteByID)
 import Relocant.Script qualified as Script (readFile, markApplied)
 
 

@@ -1,5 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-module Relocant.Migration.At
+module Relocant.At
   ( At
   , format
   , now

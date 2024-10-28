@@ -1,17 +1,17 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE PackageImports #-}
 {-# LANGUAGE TypeApplications #-}
-module Relocant.Migration.MergeSpec (spec) where
+module Relocant.MergeSpec (spec) where
 
 import Data.ByteString (ByteString)
 import Data.String (fromString)
 import "crypton" Crypto.Hash (SHA1, hash)
 import Test.Hspec
 
-import Relocant.Migration.Applied (Applied(..))
-import Relocant.Migration.At (epoch)
-import Relocant.Migration.Duration (zeroS)
-import Relocant.Migration.Merge (Merged(..), ContentMismatch(..), merge)
+import Relocant.Applied (Applied(..))
+import Relocant.At (epoch)
+import Relocant.Duration (zeroS)
+import Relocant.Merge (Merged(..), ContentMismatch(..), merge)
 import Relocant.Script (Script(..))
 
 

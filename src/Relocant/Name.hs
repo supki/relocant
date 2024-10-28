@@ -1,6 +1,6 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-module Relocant.Migration.ID
-  ( ID(..)
+module Relocant.Name
+  ( Name
   ) where
 
 import Data.Aeson qualified as Aeson
@@ -10,14 +10,13 @@ import Database.PostgreSQL.Simple.ToField qualified as DB (ToField)
 import Text.Printf (PrintfArg)
 
 
-newtype ID = ID String
+newtype Name = Name String
     deriving
       ( Show
       , Eq
-      , Ord
       , IsString
       , PrintfArg
+      , Aeson.ToJSON
       , DB.FromField
       , DB.ToField
-      , Aeson.ToJSON
       )

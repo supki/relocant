@@ -17,7 +17,7 @@ import Relocant.App.Log qualified as Log
 import Relocant.App.Opts.Fmt (Fmt)
 import Relocant.App.Opts.Fmt qualified as Fmt
 import Relocant.DB (ConnectionString, Table)
-import Relocant.Migration.ID qualified as Migration (ID)
+import Relocant.ID (ID)
 
 
 fmt :: Parser Fmt
@@ -90,7 +90,7 @@ script =
    <> help "Path to an .sql script"
     )
 
-id :: Parser Migration.ID
+id :: Parser ID
 id =
   strOption
     ( long "id"

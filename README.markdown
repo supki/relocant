@@ -46,22 +46,22 @@ Naturally, the recorded migrations will be sorted in the order of application:
 
 ```shell
 % relocant list-applied
-001     001-initial-schema  dfde7438        2024-10-24 15:04:09 +0000       0.01s
-002     002-description     74f8a76e        2024-10-24 15:04:09 +0000       0.00s
+001     001-initial-schema      dfde7438        2024-10-24 15:04:09 +0000       0.01s
+002     002-description         74f8a76e        2024-10-24 15:04:09 +0000       0.00s
 ```
 
 Once you have another migration script to apply, you put it in the `migration` directory and run `relocant apply` again:
 
 ```shell
 % relocant list-unapplied --directory ./migration
-003     003-fix-typo        a7032e4f
+003     003-fix-typo            a7032e4f
 % relocant apply
-003     003-fix-typo        a3582319
-003     003-fix-typo        a3582319        2024-10-24 15:24:09 +0000       0.00s
+003     003-fix-typo            a3582319
+003     003-fix-typo            a3582319        2024-10-24 15:24:09 +0000       0.00s
 % relocant list-applied --directory ./migration
-001     001-initial-schema  dfde7438        2024-10-24 15:04:09 +0000       0.01s
-002     002-description     74f8a76e        2024-10-24 15:04:09 +0000       0.00s
-003     003-fix-typo        a3582319        2024-10-24 15:24:09 +0000       0.00s
+001     001-initial-schema      dfde7438        2024-10-24 15:04:09 +0000       0.01s
+002     002-description         74f8a76e        2024-10-24 15:04:09 +0000       0.00s
+003     003-fix-typo            a3582319        2024-10-24 15:24:09 +0000       0.00s
 ```
 
 Acknowledgements

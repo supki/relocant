@@ -37,14 +37,14 @@ library
       Relocant.App.Opts.Internal
       Relocant.App.Opts.Option
       Relocant.App.ToText
+      Relocant.Applied
+      Relocant.At
       Relocant.DB
       Relocant.DB.Table
-      Relocant.Migration.Applied
-      Relocant.Migration.At
-      Relocant.Migration.Duration
-      Relocant.Migration.ID
-      Relocant.Migration.Merge
-      Relocant.Migration.Name
+      Relocant.Duration
+      Relocant.ID
+      Relocant.Merge
+      Relocant.Name
       Relocant.Script
   other-modules:
       Meta_relocant
@@ -96,9 +96,9 @@ test-suite spec
   type: exitcode-stdio-1.0
   main-is: Main.hs
   other-modules:
-      Relocant.Migration.AppliedSpec
-      Relocant.Migration.DurationSpec
-      Relocant.Migration.MergeSpec
+      Relocant.AppliedSpec
+      Relocant.DurationSpec
+      Relocant.MergeSpec
       Relocant.ScriptSpec
       Spec
       SpecHelper.DB

@@ -21,7 +21,7 @@ import Prelude hiding (id)
 import Relocant.App.Env (Env)
 import Relocant.App.Opts.Option qualified as O
 import Relocant.DB (ConnectionString, Table)
-import Relocant.Migration.ID qualified as Migration (ID)
+import Relocant.ID (ID)
 
 
 data InternalCmd
@@ -64,7 +64,7 @@ instance Aeson.ToJSON MarkApplied where
 data Delete = MkDelete
   { connString :: ConnectionString
   , table      :: Table
-  , id         :: Migration.ID
+  , id         :: ID
   } deriving (Show, Eq, Generic)
 
 instance Aeson.ToJSON Delete where

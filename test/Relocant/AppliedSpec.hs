@@ -1,12 +1,12 @@
 {-# LANGUAGE PackageImports #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TypeApplications #-}
-module Relocant.Migration.AppliedSpec (spec) where
+module Relocant.AppliedSpec (spec) where
 
 import Prelude hiding (id)
 import Test.Hspec
 
-import Relocant.Migration.Applied qualified as Applied
+import Relocant.Applied qualified as Applied
 import Relocant.Script (Script(..))
 import Relocant.Script qualified as Script (markApplied)
 import Relocant.DB qualified as DB

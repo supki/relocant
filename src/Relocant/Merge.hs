@@ -1,6 +1,6 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
-module Relocant.Migration.Merge
+module Relocant.Merge
   ( Merged(..)
   , ContentMismatch(..)
   , merge
@@ -10,7 +10,7 @@ module Relocant.Migration.Merge
 
 import Data.Aeson qualified as Aeson
 import Data.Aeson ((.=))
-import Relocant.Migration.Applied (Applied(..))
+import Relocant.Applied (Applied(..))
 import Relocant.Script (Script(..))
 
 

@@ -1,6 +1,6 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE TypeApplications #-}
-module Relocant.Migration.Duration
+module Relocant.Duration
   ( Duration(..)
   , measure
   , measure_

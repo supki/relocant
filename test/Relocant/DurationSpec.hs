@@ -1,8 +1,8 @@
-module Relocant.Migration.DurationSpec (spec) where
+module Relocant.DurationSpec (spec) where
 
 import Test.Hspec
 
-import Relocant.Migration.Duration (Duration(..), measure)
+import Relocant.Duration (Duration(..), measure)
 
 
 spec :: Spec

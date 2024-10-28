@@ -26,14 +26,14 @@ import Options.Applicative
 import Prelude hiding (id)
 
 import Meta_relocant qualified as Meta
-import Relocant.DB (ConnectionString, Table)
-import Relocant.Migration.ID qualified as Migration (ID)
 import Relocant.App.Env (Env)
 import Relocant.App.Log qualified as Log
 import Relocant.App.Opts.Fmt (Fmt)
 import Relocant.App.Opts.Option qualified as O
 import Relocant.App.Opts.Internal (InternalCmd(..))
 import Relocant.App.Opts.Internal qualified as Internal
+import Relocant.DB (ConnectionString, Table)
+import Relocant.ID (ID)
 
 
 data Cfg = Cfg
@@ -72,7 +72,7 @@ instance Aeson.ToJSON ListApplied where
 data ShowApplied = MkShowApplied
   { connString :: ConnectionString
   , table      :: Table
-  , id         :: Migration.ID
+  , id         :: ID
   } deriving (Show, Eq, Generic)
 
 instance Aeson.ToJSON ShowApplied where

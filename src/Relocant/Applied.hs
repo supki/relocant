@@ -4,9 +4,8 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE ViewPatterns #-}
-module Relocant.Migration.Applied
+module Relocant.Applied
   ( Applied(..)
-  , Migration.ID
   , selectAll
   , selectByID
   , record
@@ -26,19 +25,19 @@ import Database.PostgreSQL.Simple.SqlQQ qualified as DB (sql)
 import Prelude hiding (id, readFile)
 
 import Relocant.DB qualified as DB (Table)
-import Relocant.Migration.At qualified as Migration (At)
-import Relocant.Migration.ID qualified as Migration (ID)
-import Relocant.Migration.Name qualified as Migration (Name)
-import Relocant.Migration.Duration qualified as Migration (Duration)
+import Relocant.At (At)
+import Relocant.ID (ID)
+import Relocant.Name (Name)
+import Relocant.Duration (Duration)
 
 
 data Applied = Applied
-  { id        :: Migration.ID
-  , name      :: Migration.Name
+  { id        :: ID
+  , name      :: Name
   , bytes     :: ByteString
   , sha1      :: Digest SHA1
-  , appliedAt :: Migration.At
-  , durationS :: Migration.Duration
+  , appliedAt :: At
+  , durationS :: Duration
   } deriving (Show, Eq)
 
 instance Aeson.ToJSON Applied where
@@ -64,7 +63,7 @@ selectAll table conn = do
   ORDER BY id
   |] (DB.Only table)
 
-selectByID :: Migration.ID -> DB.Table -> DB.Connection -> IO (Maybe Applied)
+selectByID :: ID -> DB.Table -> DB.Connection -> IO (Maybe Applied)
 selectByID id table conn = do
   ms <- DB.queryWith appliedP conn [DB.sql|
     SELECT id
@@ -112,7 +111,7 @@ deleteAll table conn = do
   |] (DB.Only table)
   pure ()
 
-deleteByID :: Migration.ID -> DB.Table -> DB.Connection -> IO Bool
+deleteByID :: ID -> DB.Table -> DB.Connection -> IO Bool
 deleteByID id table conn = do
   rows <- DB.execute conn [DB.sql|
     DELETE FROM ?
