@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE PackageImports #-}
@@ -12,29 +13,29 @@ module Relocant.Script
   , parseFilePath
   , readContent
   , apply
-  , record
+  , markApplied
   ) where
 
 import "crypton" Crypto.Hash (Digest, SHA1, hash)
 import Data.Aeson qualified as Aeson
 import Data.Aeson ((.=))
-import Data.ByteArray (convert)
 import Data.ByteString (ByteString)
 import Data.ByteString qualified as ByteString
 import Data.Char qualified as Char
 import Data.List qualified as List
 import Data.String (IsString(..))
 import Database.PostgreSQL.Simple qualified as DB
-import Database.PostgreSQL.Simple.SqlQQ qualified as DB (sql)
 import Database.PostgreSQL.Simple.Types qualified as DB (Query(..))
 import GHC.Records (HasField(getField))
 import Prelude hiding (id, readFile)
 import System.Directory qualified as D
 import System.FilePath ((</>), isExtensionOf, takeBaseName)
 
-import Relocant.DB qualified as DB (Table)
+import Relocant.Migration (Migration(..))
+import Relocant.Migration.At qualified as Migration (At)
+import Relocant.Migration.At qualified as Migration.At
 import Relocant.Migration.ID qualified as Migration (ID)
-import Relocant.Migration.Interval (makeInterval_)
+import Relocant.Migration.Interval (makeInterval_, zeroInterval)
 import Relocant.Migration.Interval qualified as Migration (Interval)
 import Relocant.Migration.Name qualified as Migration (Name)
 
@@ -107,32 +108,26 @@ parseFilePath path = do
       span Char.isAlphaNum basename
   (fromString id, fromString basename)
 
-apply :: Script -> DB.Connection -> IO Migration.Interval
-apply script conn = do
-  makeInterval_ (DB.execute_ conn (DB.Query script.bytes))
+applyWith :: (ByteString -> IO x) -> Script -> IO Migration
+applyWith f s = do
+  appliedAt <- Migration.At.now
+  durationS <- makeInterval_ (f s.bytes)
+  pure (applied s appliedAt durationS)
 
-record :: DB.Table -> Script -> Migration.Interval -> DB.Connection -> IO ()
-record table s durationS conn = do
-  1 <- DB.execute conn [DB.sql|
-    INSERT INTO ?
-              ( id
-              , name
-              , bytes
-              , sha1
-              , applied_at
-              , duration_s
-              )
-         SELECT ?
-              , ?
-              , ?
-              , ?
-              , CURRENT_TIMESTAMP
-              , make_interval(secs := ?)
-  |] ( table
-     , s.id
-     , s.name
-     , DB.Binary s.bytes
-     , DB.Binary (convert @_ @ByteString s.sha1)
-     , durationS
-     )
-  pure ()
+apply :: Script -> DB.Connection -> IO Migration
+apply s conn = do
+  applyWith (DB.execute_ conn . DB.Query) s
+
+markApplied :: Script -> IO Migration
+markApplied =
+  applyWith (\_bytes -> pure zeroInterval)
+
+applied :: Script -> Migration.At -> Migration.Interval -> Migration
+applied s appliedAt durationS = Migration
+  { id = s.id
+  , name = s.name
+  , bytes = s.bytes
+  , sha1 = s.sha1
+  , appliedAt
+  , durationS
+  }

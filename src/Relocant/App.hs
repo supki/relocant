@@ -28,8 +28,7 @@ import Relocant.App.Opts.Fmt qualified as Fmt
 import Relocant.App.ToText (ToText(..))
 import Relocant.DB qualified as DB (ConnectionString, Table, connect, dumpSchema, withLock, withTryLock)
 import Relocant.Migration qualified as Migration (selectByID, deleteAll, deleteByID)
-import Relocant.Migration.Interval (zeroInterval)
-import Relocant.Script qualified as Script (readFile)
+import Relocant.Script qualified as Script (readFile, markApplied)
 
 
 run :: IO ()
@@ -149,7 +148,8 @@ runMarkApplied log opts = do
         [ "action" .= ("mark-applied" :: String)
         , "record" .= script.id
         ]
-      Relocant.record opts.table script zeroInterval conn
+      markApplied <- Script.markApplied script
+      Relocant.record markApplied opts.table conn
 
 runDelete :: Log -> Opts.Delete -> IO ()
 runDelete log opts = do
@@ -201,12 +201,13 @@ apply log table conn scripts = do
         [ "action" .= ("apply" :: String)
         , "apply" .= script.id
         ]
-      durationS <- Relocant.apply script conn
+      applied <- Relocant.apply script conn
       Log.info log
         [ "action" .= ("apply" :: String)
         , "record" .= script.id
+        , "duration" .= applied.durationS
         ]
-      Relocant.record table script durationS conn
+      Relocant.record applied table conn
 
 withLock
   :: (HasField "table" cfg DB.Table, HasField "connString" cfg DB.ConnectionString)

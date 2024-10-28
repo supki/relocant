@@ -9,18 +9,14 @@ import System.IO.Temp
 import Test.Hspec
 
 import Relocant.App.Env qualified as Env
-import Relocant.Migration qualified as Migration
-import Relocant.Migration.Interval (makeInterval_)
 import Relocant.Script
   ( Script(..)
   , parseFilePath
   , readContent
   , readAll
   , apply
-  , record
   )
 import Relocant.Script qualified as Script (readFile)
-import Relocant.DB qualified as DB
 
 import SpecHelper.DB qualified as DB
 
@@ -105,18 +101,3 @@ spec = do
             }
         _durationS <- apply script conn
         pure ()
-
-    describe "record" $
-      it "stores the script in the DB" $ \conn -> do
-        let
-          script = Script
-            { id = "00"
-            , name = "00-oops"
-            , content = "CREATE TABLE foo ()"
-            }
-        durationS <- makeInterval_ (pure ())
-        record DB.defaultTable script durationS conn
-        [m] <- Migration.selectAll DB.defaultTable conn
-        m.id `shouldBe` "00"
-        m.bytes `shouldBe` "CREATE TABLE foo ()"
-

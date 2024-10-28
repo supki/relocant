@@ -22,7 +22,7 @@ module Relocant
   , Migration.Merge.converged
 
   , Script.apply
-  , Script.record
+  , Migration.record
   ) where
 
 import Database.PostgreSQL.Simple (Connection)

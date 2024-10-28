@@ -9,6 +9,7 @@ module Relocant.Migration
   , Migration.ID
   , selectAll
   , selectByID
+  , record
   , deleteAll
   , deleteByID
   ) where
@@ -16,6 +17,7 @@ module Relocant.Migration
 import "crypton" Crypto.Hash (Digest, SHA1, digestFromByteString)
 import Data.Aeson qualified as Aeson
 import Data.Aeson ((.=))
+import Data.ByteArray (convert)
 import Data.ByteString (ByteString)
 import Data.Maybe (listToMaybe)
 import Database.PostgreSQL.Simple qualified as DB
@@ -75,6 +77,33 @@ selectByID id table conn = do
      WHERE id = ?
   |] (table, id)
   pure (listToMaybe ms)
+
+record :: Migration -> DB.Table -> DB.Connection -> IO ()
+record m table conn = do
+  1 <- DB.execute conn [DB.sql|
+    INSERT INTO ?
+              ( id
+              , name
+              , bytes
+              , sha1
+              , applied_at
+              , duration_s
+              )
+         SELECT ?
+              , ?
+              , ?
+              , ?
+              , ?
+              , make_interval(secs := ?)
+  |] ( table
+     , m.id
+     , m.name
+     , DB.Binary m.bytes
+     , DB.Binary (convert @_ @ByteString m.sha1)
+     , m.appliedAt
+     , m.durationS
+     )
+  pure ()
 
 deleteAll :: DB.Table -> DB.Connection -> IO ()
 deleteAll table conn = do
