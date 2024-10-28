@@ -93,6 +93,7 @@ data Apply = MkApply
   { connString :: ConnectionString
   , table      :: Table
   , scripts    :: FilePath
+  , format     :: Fmt
   } deriving (Show, Eq, Generic)
 
 instance Aeson.ToJSON Apply where
@@ -176,6 +177,7 @@ applyP env = do
   connString <- O.connectionString
   table <- O.table env
   scripts <- O.scripts env
+  format <- O.fmt
   pure (Apply MkApply {..})
 
 versionP :: Parser Cmd

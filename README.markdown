@@ -35,11 +35,10 @@ there are restrictions on what you can put in a migration script, including thes
 
 ```shell
 % relocant apply --directory ./migration
-{"_at":...","_severity":"info","action":"apply","migrations":["001","002"]}
-{"_at":...","_severity":"info","action":"apply","apply":"001"}
-{"_at":...","_severity":"info","action":"apply","record":"001"}
-{"_at":...","_severity":"info","action":"apply","apply":"002"}
-{"_at":...","_severity":"info","action":"apply","record":"002"}
+001     001-initial-schema      dfde7438
+001     001-initial-schema      dfde7438        2024-10-24 15:04:09 +0000       0.01
+002     002-description         74f8a76e
+002     002-description         74f8a76e        2024-10-24 15:04:09 +0000       0.01
 ```
 
 By running `relocant list-applied`, we can check that the applied scripts have been recorded correctly.
@@ -55,11 +54,10 @@ Once you have another migration script to apply, you put it in the `migration` d
 
 ```shell
 % relocant list-unapplied --directory ./migration
-003     003-fix-typo    a7032e4f
+003     003-fix-typo        a7032e4f
 % relocant apply
-{"_at":"...","_severity":"info","action":"apply","migrations":["003"]}
-{"_at":"...","_severity":"info","action":"apply","run":"003"}
-{"_at":"...","_severity":"info","action":"apply","record":"003"}
+003     003-fix-typo        a3582319
+003     003-fix-typo        a3582319        2024-10-24 15:24:09 +0000       0.00s
 % relocant list-applied --directory ./migration
 001     001-initial-schema  dfde7438        2024-10-24 15:04:09 +0000       0.01s
 002     002-description     74f8a76e        2024-10-24 15:04:09 +0000       0.00s

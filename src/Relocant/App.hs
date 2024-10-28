@@ -127,7 +127,7 @@ runVerify log opts = do
 runApply :: Log -> Opts.Apply -> IO ()
 runApply log opts = do
   withLock log opts $ \conn -> do
-    apply log opts.table conn opts.scripts
+    apply log opts.table conn opts.scripts opts.format
     verify log opts.table conn opts.scripts Nothing
 
 runDumpSchema :: Opts.DumpSchema -> IO ()
@@ -139,12 +139,12 @@ runMarkApplied log opts = do
   withTryLock log opts $ \conn -> do
     script <- Script.readFile opts.script
     DB.withTransaction conn $ do
-      Log.info log
+      Log.debug log
         [ "action" .= ("mark-applied" :: String)
         , "delete" .= script.id
         ]
       _deleted <- Applied.deleteByID script.id opts.table conn
-      Log.info log
+      Log.debug log
         [ "action" .= ("mark-applied" :: String)
         , "record" .= script.id
         ]
@@ -182,8 +182,8 @@ verify log table conn dir formatQ = do
       println format migrations
     exitFailure
 
-apply :: Log -> DB.Table -> DB.Connection -> FilePath -> IO ()
-apply log table conn scripts = do
+apply :: Log -> DB.Table -> DB.Connection -> FilePath -> Fmt -> IO ()
+apply log table conn scripts format = do
   merged <- Relocant.mergeAll table conn scripts
   unless (Relocant.canApply merged) $ do
     Log.error log
@@ -191,23 +191,25 @@ apply log table conn scripts = do
       , "result" .= ("not ready to apply the scripts, run `verify' first" :: String)
       ]
     exitFailure
-  Log.info log
+  Log.debug log
     [ "action" .= ("apply" :: String)
     , "migrations" .= map (.id) merged.unapplied
     ]
   for_ merged.unapplied $ \script -> do
+    println format script
     DB.withTransaction conn $ do
-      Log.info log
+      Log.debug log
         [ "action" .= ("apply" :: String)
         , "apply" .= script.id
         ]
       applied <- Relocant.apply script conn
-      Log.info log
+      Log.debug log
         [ "action" .= ("apply" :: String)
         , "record" .= script.id
         , "duration" .= applied.durationS
         ]
       Relocant.record applied table conn
+      println format applied
 
 withLock
   :: (HasField "table" cfg DB.Table, HasField "connString" cfg DB.ConnectionString)
