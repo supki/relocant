@@ -26,7 +26,7 @@ scripts to reside inside a single directory.
 > The path to the scripts directory can be configured by
 >
 >   - either setting the `RELOCANT_SCRIPTS_DIR` environment variable,
->   - or providing the path to the `--directory` option
+>   - or providing the path to the `--scripts` option
 
 If we run `relocant list-unapplied` we'll get back a migration plan, listing those scripts
 that haven't yet been recorded as applied in the database, in the order they will be applied:
@@ -35,7 +35,7 @@ that haven't yet been recorded as applied in the database, in the order they wil
 % ls ./migration
 001-initial-schema.sql
 002-description.sql
-% relocant list-unapplied --directory ./migration
+% relocant list-unapplied --scripts ./migration
 001     001-initial-schema      dfde7438
 002     002-description         74f8a76e
 ```
@@ -60,7 +60,7 @@ Now, if we like this plan, we can run `relocant apply` to actually apply the scr
 > correctly.
 
 ```shell
-% relocant apply --directory ./migration
+% relocant apply --scripts ./migration
 001     001-initial-schema      dfde7438
 001     001-initial-schema      dfde7438        2024-10-24 15:04:09 +0000       0.01
 002     002-description         74f8a76e
@@ -79,12 +79,12 @@ Naturally, the recorded migrations will be sorted in the order of application:
 Once we have another migration script to apply, we put it in the `migration` directory and re-run `relocant apply`:
 
 ```shell
-% relocant list-unapplied --directory ./migration
+% relocant list-unapplied --scripts ./migration
 003     003-fix-typo            a7032e4f
 % relocant apply
 003     003-fix-typo            a3582319
 003     003-fix-typo            a3582319        2024-10-24 15:24:09 +0000       0.00s
-% relocant list-applied --directory ./migration
+% relocant list-applied --scripts ./migration
 001     001-initial-schema      dfde7438        2024-10-24 15:04:09 +0000       0.01s
 002     002-description         74f8a76e        2024-10-24 15:04:09 +0000       0.00s
 003     003-fix-typo            a3582319        2024-10-24 15:24:09 +0000       0.00s

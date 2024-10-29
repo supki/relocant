@@ -1,4 +1,5 @@
 :set -Wall
+:set -Wcompat
 :set -Wno-incomplete-uni-patterns
 :set -isrc
 :set -itest

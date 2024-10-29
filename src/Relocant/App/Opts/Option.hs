@@ -74,8 +74,8 @@ table env =
 scripts :: Env -> Parser String
 scripts env =
   strOption
-    ( short 'd'
-   <> long "directory"
+    ( short 's'
+   <> long "scripts"
    <> metavar "PATH"
    <> foldMap value env.scripts
    <> help "Directory containing .sql scripts"
