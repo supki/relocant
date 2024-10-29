@@ -1,16 +1,17 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Relocant.Name
-  ( Name
+  ( Name(..)
   ) where
 
 import Data.Aeson qualified as Aeson
 import Data.String (IsString)
+import Data.Text (Text)
 import Database.PostgreSQL.Simple.FromField qualified as DB (FromField)
 import Database.PostgreSQL.Simple.ToField qualified as DB (ToField)
 import Text.Printf (PrintfArg)
 
 
-newtype Name = Name String
+newtype Name = Name Text
     deriving
       ( Show
       , Eq

@@ -80,6 +80,7 @@ tests:
       - postgresql-simple
       - random
       - temporary
+      - text
     source-dirs:
       test
     main:

@@ -96,6 +96,7 @@ test-suite spec
   type: exitcode-stdio-1.0
   main-is: Main.hs
   other-modules:
+      Relocant.App.ToTextSpec
       Relocant.AppliedSpec
       Relocant.DurationSpec
       Relocant.MergeSpec
@@ -122,4 +123,5 @@ test-suite spec
     , random
     , relocant
     , temporary
+    , text
   default-language: Haskell2010
