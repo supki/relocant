@@ -8,6 +8,7 @@ module Relocant.DB
   , init
   , withLock
   , withTryLock
+  , DB.withTransaction
   , dumpSchema
   ) where
 

@@ -6,6 +6,7 @@ module Relocant
   , DB.connect
   , DB.withLock
   , DB.withTryLock
+  , DB.withTransaction
 
   , Applied(..)
   , ID
@@ -29,7 +30,7 @@ import Database.PostgreSQL.Simple (Connection)
 
 import Relocant.Applied (Applied)
 import Relocant.Applied qualified as Applied
-import Relocant.DB qualified as DB (ConnectionString, connect, withLock, withTryLock)
+import Relocant.DB qualified as DB (ConnectionString, connect, withLock, withTryLock, withTransaction)
 import Relocant.DB.Table qualified as DB (Table, defaultTable)
 import Relocant.ID (ID)
 import Relocant.Merge qualified as Relocant (merge)
