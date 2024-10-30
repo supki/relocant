@@ -2,11 +2,11 @@
 {-# LANGUAGE TypeApplications #-}
 module SpecHelper.DB
   ( createTemplate
+  , dropTemplate
   , withTemplateCloned
   ) where
 
-import Control.Exception (bracket, bracket_, catch)
-import Control.Monad (when)
+import Control.Exception (bracket, bracket_)
 import Data.ByteString (ByteString)
 import Data.Int (Int32)
 import Data.String (fromString)
@@ -21,17 +21,17 @@ import Relocant.DB qualified as DB (init)
 
 createTemplate :: IO ()
 createTemplate = do
-  created <- bracket (DB.connectPostgreSQL "") DB.close $ \conn -> do
-    createBase "relocant_base" conn
-    pure True
-   `catch`
-    \DB.SqlError {DB.sqlErrorMsg = "database \"relocant_base\" already exists"} ->
-      pure False
-  when created $
-    withDB "relocant_base" $ \conn -> do
-      DB.init conn "public.relocant_migration"
-      setTemplate "relocant_base" conn
-      DB.close conn
+  withDB "relocant" (createDatabase "relocant_base")
+  withDB "relocant_base" $ \conn -> do
+    DB.init conn "public.relocant_migration"
+    setTemplate "relocant_base" conn
+    DB.close conn
+
+dropTemplate :: IO ()
+dropTemplate =
+  withDB "relocant" $ \conn -> do
+    unsetTemplate "relocant_base" conn
+    dropDatabase "relocant_base" conn
 
 withTemplateCloned :: (DB.Connection -> IO a) -> IO a
 withTemplateCloned f = do
@@ -54,19 +54,24 @@ withDB :: ByteString -> (DB.Connection -> IO a) -> IO a
 withDB name =
   bracket (DB.connectPostgreSQL ("dbname=" <> name)) DB.close
 
-createBase :: DB.QualifiedIdentifier -> DB.Connection -> IO ()
-createBase base conn = do
+createDatabase :: DB.QualifiedIdentifier -> DB.Connection -> IO ()
+createDatabase base conn = do
   _ <- DB.execute conn [DB.sql|
     CREATE DATABASE ?
   |] (DB.Only base)
   pure ()
 
-setTemplate :: String -> DB.Connection -> IO ()
+setTemplate :: DB.QualifiedIdentifier -> DB.Connection -> IO ()
 setTemplate base conn = do
   _ <- DB.execute conn [DB.sql|
-    UPDATE pg_database
-       SET datistemplate = true
-     WHERE datname = ?
+    ALTER DATABASE ? IS_TEMPLATE = true;
+  |] (DB.Only base)
+  pure ()
+
+unsetTemplate :: DB.QualifiedIdentifier -> DB.Connection -> IO ()
+unsetTemplate base conn = do
+  _ <- DB.execute conn [DB.sql|
+    ALTER DATABASE ? IS_TEMPLATE = false;
   |] (DB.Only base)
   pure ()
 
