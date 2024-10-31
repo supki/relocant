@@ -14,19 +14,20 @@ import Relocant.Applied (Applied(..))
 import Relocant.Script (Script(..))
 
 
+-- | The result of merging 'Script's and 'Applied' migrations.
 data Merged = Merged
   { unrecorded      :: [Script]
-    -- ^ a script that does not have a corresponding
+    -- ^ A script that does not have a corresponding
     -- recorded migration, when there is a recorded migration
     -- with a higher ID
   , scriptMissing   :: [Applied]
-    -- ^ a recorded migration that does not have a
+    -- ^ A recorded migration that does not have a
     -- corresponding script
   , contentMismatch :: [ContentMismatch]
-    -- ^ a recorded migration and a script have the same ID but
+    -- ^ A recorded migration and a script have the same ID but
     -- different content
   , unapplied       :: [Script]
-    -- ^ an unapplied script that has a higher ID than any
+    -- ^ An unapplied script that has a higher ID than any
     -- recorded migration
   } deriving (Show, Eq)
 

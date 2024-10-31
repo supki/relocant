@@ -1,4 +1,5 @@
 {-# LANGUAGE LambdaCase #-}
+{-# OPTIONS_HADDOCK hide #-}
 -- | A very basic logger implementation sufficient for our needs in the CLI tool.
 --
 -- This logger simply writes JSON messages to stderr if their severity is higher than

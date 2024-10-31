@@ -1,16 +1,17 @@
 module Relocant
   ( Script(..)
   , readScripts
+  , readScript
 
   , DB.ConnectionString
   , DB.connect
   , DB.withLock
   , DB.withTryLock
-  , DB.withTransaction
 
   , Applied(..)
   , ID
   , Name
+  , Duration
   , DB.Table
   , DB.defaultTable
   , getApplied
@@ -24,24 +25,28 @@ module Relocant
 
   , Script.apply
   , Applied.record
+  -- * Re-exports (postgresql-simple)
+  --
+  -- Generally, I'm against re-exports for convenience, but here I feel
+  -- it really improves the user experience, so it goes:
+  , Connection
+  , withTransaction
   ) where
 
-import Database.PostgreSQL.Simple (Connection)
+import Database.PostgreSQL.Simple (Connection, withTransaction)
 
 import Relocant.Applied (Applied)
 import Relocant.Applied qualified as Applied
-import Relocant.DB qualified as DB (ConnectionString, connect, withLock, withTryLock, withTransaction)
+import Relocant.DB qualified as DB (ConnectionString, connect, withLock, withTryLock)
 import Relocant.DB.Table qualified as DB (Table, defaultTable)
+import Relocant.Duration (Duration)
 import Relocant.ID (ID)
 import Relocant.Merge qualified as Relocant (merge)
 import Relocant.Merge qualified
 import Relocant.Name (Name)
-import Relocant.Script (Script(..))
+import Relocant.Script (Script(..), readScripts, readScript)
 import Relocant.Script qualified as Script
 
-
-readScripts :: FilePath -> IO [Script]
-readScripts = Script.readAll
 
 getApplied :: DB.Table -> Connection -> IO [Applied]
 getApplied = Applied.selectAll
@@ -49,5 +54,5 @@ getApplied = Applied.selectAll
 mergeAll :: DB.Table -> Connection -> FilePath -> IO Relocant.Merge.Merged
 mergeAll table conn dir = do
   migrations <- Relocant.getApplied table conn
-  scripts <- Relocant.readScripts dir
+  scripts <- readScripts dir
   pure (Relocant.Merge.merge migrations scripts)

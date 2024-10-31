@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
+{-# OPTIONS_HADDOCK hide #-}
 module Relocant.App
   ( run
   ) where
@@ -28,7 +29,8 @@ import Relocant.App.Opts.Fmt qualified as Fmt
 import Relocant.App.ToText (ToText(..))
 import Relocant.Applied qualified as Applied (selectByID, deleteAll, deleteByID)
 import Relocant.DB qualified as DB (ConnectionString, Table, connect, dumpSchema, withLock, withTryLock)
-import Relocant.Script qualified as Script (readFile, markApplied)
+import Relocant.Script (readScript)
+import Relocant.Script qualified as Script (markApplied)
 
 
 run :: IO ()
@@ -137,7 +139,7 @@ runDumpSchema _opts =
 runMarkApplied :: Log -> Opts.MarkApplied -> IO ()
 runMarkApplied log opts = do
   withTryLock log opts $ \conn -> do
-    script <- Script.readFile opts.script
+    script <- readScript opts.script
     DB.withTransaction conn $ do
       Log.debug log
         [ "action" .= ("mark-applied" :: String)

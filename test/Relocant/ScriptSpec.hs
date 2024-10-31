@@ -13,10 +13,10 @@ import Relocant.Script
   ( Script(..)
   , parseFilePath
   , readContent
-  , readAll
+  , readScripts
+  , readScript
   , apply
   )
-import Relocant.Script qualified as Script (readFile)
 
 import SpecHelper.DB qualified as DB
 
@@ -49,21 +49,21 @@ spec = do
         writeFile path "abc"
         readContent path `shouldReturn` "abc"
 
-  describe "readFile" $ do
+  describe "readScript" $ do
     it "combines parseFilePath and readContent" $
       withSystemTempDirectory Env.name $ \tmpDir -> do
         let
           path =
             tmpDir </> "0001-migration-name.sql"
         writeFile path "abc"
-        Script.readFile path `shouldReturn`
+        readScript path `shouldReturn`
           Script
             { id = "0001"
             , name = "0001-migration-name"
             , content = "abc"
             }
 
-  describe "readAll" $
+  describe "readScripts" $
     it "lists all .sql files in a directory, ordered by ID" $
       withSystemTempDirectory Env.name $ \tmpDir -> do
         let
@@ -72,7 +72,7 @@ spec = do
         writeFile (file "01-abc.sql") "abc"
         writeFile (file "02-def.sql") "def"
         writeFile (file "00-oops.sql") "oops"
-        readAll tmpDir `shouldReturn`
+        readScripts tmpDir `shouldReturn`
           [ Script
             { id = "00"
             , name = "00-oops"

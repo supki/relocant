@@ -1,4 +1,5 @@
 {-# LANGUAGE LambdaCase #-}
+{-# OPTIONS_HADDOCK hide #-}
 module Relocant.App.Opts.Option
   ( fmt
   , minSeverity

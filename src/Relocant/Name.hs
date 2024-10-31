@@ -1,4 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# OPTIONS_HADDOCK hide #-}
 module Relocant.Name
   ( Name(..)
   ) where
@@ -11,6 +12,7 @@ import Database.PostgreSQL.Simple.ToField qualified as DB (ToField)
 import Text.Printf (PrintfArg)
 
 
+-- | Migration 'Name'.
 newtype Name = Name Text
     deriving
       ( Show

@@ -5,15 +5,17 @@
 {-# LANGUAGE PackageImports #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TypeApplications #-}
+-- | This module deals with migrations that haven't yet been applied.
 module Relocant.Script
   ( Script(..)
   , Content(..)
-  , readAll
-  , readFile
-  , parseFilePath
-  , readContent
+  , readScripts
+  , readScript
   , apply
   , markApplied
+    -- * Extra
+  , parseFilePath
+  , readContent
   ) where
 
 import "crypton" Crypto.Hash (Digest, SHA1, hash)
@@ -27,7 +29,7 @@ import Data.String (IsString(..))
 import Database.PostgreSQL.Simple qualified as DB
 import Database.PostgreSQL.Simple.Types qualified as DB (Query(..))
 import GHC.Records (HasField(getField))
-import Prelude hiding (id, readFile)
+import Prelude hiding (id)
 import System.Directory qualified as D
 import System.FilePath ((</>), isExtensionOf, takeBaseName)
 
@@ -40,12 +42,15 @@ import Relocant.Duration qualified as Duration
 import Relocant.Name (Name)
 
 
+-- | A migration script. Generally, it's created with 'readScripts'
+-- or 'readScript' for a finer-grained control.
 data Script = Script
-  { id      :: ID
-  , name    :: Name
+  { id      :: ID      -- ^ if XXX-YYYY.sql is the whole filename, then XXX is the id; see 'parseFilePath'
+  , name    :: Name    -- ^ if XXX-YYYY.sql is the whole filename, then XXX-YYYY is the name
   , content :: Content
   } deriving (Show, Eq)
 
+-- | The content (as in actual bytes) is skipped.
 instance Aeson.ToJSON Script where
   toJSON s =
     Aeson.object
@@ -62,6 +67,7 @@ instance HasField "sha1" Script (Digest SHA1) where
   getField s =
     s.content.sha1
 
+-- | Migration content and its checksum.
 data Content = Content
   { bytes :: ByteString
   , sha1  :: Digest SHA1
@@ -73,14 +79,20 @@ instance IsString Content where
     , sha1 = hash @ByteString @SHA1 (fromString str)
     }
 
-readAll :: FilePath -> IO [Script]
-readAll dir = do
+-- | Read migration 'Script's from a directory. It only tries to read paths
+-- ending with the /.sql/ extension and doesn't recurse into subdirectories.
+--
+-- /Note/: the directory must exist
+readScripts :: FilePath -> IO [Script]
+readScripts dir = do
   paths <- D.listDirectory dir
-  scripts <- traverse (\path -> readFile (dir </> path)) (filter (isExtensionOf ".sql") paths)
+  scripts <- traverse (\path -> readScript (dir </> path)) (filter (isExtensionOf ".sql") paths)
   pure (List.sortOn (\script -> script.id) scripts)
 
-readFile :: FilePath -> IO Script
-readFile path = do
+-- | Read migration 'Script's from a file. Useful when you need a more fine-grained
+-- control over which paths are read then what 'readScripts' provides.
+readScript :: FilePath -> IO Script
+readScript path = do
   let
     (id, name) =
       parseFilePath path
@@ -91,14 +103,10 @@ readFile path = do
     , content
     }
 
-readContent :: FilePath -> IO Content
-readContent path = do
-  bytes <- ByteString.readFile path
-  pure Content
-    { bytes
-    , sha1 = hash bytes
-    }
-
+-- | Get XXX as the 'ID' and XXX-YYYY as the 'Name' from XXX-YYYY.sql
+--
+-- Basically, the longest alphanumeric prefix of the basename is the 'ID',
+-- and the basename is the 'Name'.
 parseFilePath :: FilePath -> (ID, Name)
 parseFilePath path = do
   let
@@ -108,16 +116,29 @@ parseFilePath path = do
       span Char.isAlphaNum basename
   (fromString id, fromString basename)
 
+-- | Get migration 'Script'\'s content and its checksum.
+readContent :: FilePath -> IO Content
+readContent path = do
+  bytes <- ByteString.readFile path
+  pure Content
+    { bytes
+    , sha1 = hash bytes
+    }
+
 applyWith :: (ByteString -> IO x) -> Script -> IO Applied
 applyWith f s = do
   appliedAt <- At.now
   durationS <- Duration.measure_ (f s.bytes)
   pure (applied s appliedAt durationS)
 
+-- | Run a 'Script' against the database, get an 'Applied' migration back if successful.
 apply :: Script -> DB.Connection -> IO Applied
 apply s conn = do
   applyWith (DB.execute_ conn . DB.Query) s
 
+-- | Get an 'Applied' migration from a 'Script', without running it. This should not
+-- be normally used, but can be useful for fixing checksums after cosmetics updates
+-- of migration 'Script's (such as adding comments, for example).
 markApplied :: Script -> IO Applied
 markApplied =
   applyWith (\_bytes -> pure Duration.zeroS)
