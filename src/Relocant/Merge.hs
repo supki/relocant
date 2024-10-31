@@ -1,5 +1,8 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
+{-# OPTIONS_HADDOCK hide #-}
+-- | This modules deals with merging scripts and applied migrations,
+-- and discovering inconsistencies.
 module Relocant.Merge
   ( Merged(..)
   , ContentMismatch(..)
@@ -40,6 +43,7 @@ instance Aeson.ToJSON Merged where
        , "unapplied" .= r.unapplied
        ]
 
+-- | The applied migration and its purported script differ in content.
 data ContentMismatch = ContentMismatch
   { expected :: Applied
   , butGot   :: Script
@@ -52,16 +56,20 @@ instance Aeson.ToJSON ContentMismatch where
        , "but-got" .= cm.butGot
        ]
 
+-- | No problems have been discovered after the merge.
 canApply :: Merged -> Bool
 canApply = \case
   Merged {unrecorded = [], scriptMissing = [], contentMismatch = []} -> True
   _ -> False
 
+-- | No problems have been discovered after the merge, and there are no migration scripts to apply.
 converged :: Merged -> Bool
 converged = \case
   Merged {unrecorded = [], scriptMissing = [], contentMismatch = [], unapplied = []} -> True
   _ -> False
 
+-- | Merge scripts and applied migrations, trying to discover inconsistencies and/or
+-- migration scripts to apply.
 merge :: [Applied] -> [Script] -> Merged
 merge applieds scripts =
   fromAcc (go ([], [], []) applieds scripts)

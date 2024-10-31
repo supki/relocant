@@ -1,3 +1,4 @@
+-- | A PostgreSQL migration library
 module Relocant
   ( Script(..)
   , readScripts
@@ -49,8 +50,10 @@ import Relocant.Script (Script(..), readScripts, readScript)
 import Relocant.Script qualified as Script
 
 
+-- | A convenience function that gets all applied migrations' records from
+-- the DB and merges them together with the migration scripts from a given directory.
 mergeAll :: DB.Table -> Connection -> FilePath -> IO Relocant.Merge.Merged
 mergeAll table conn dir = do
-  migrations <- getApplied table conn
+  applieds <- getApplied table conn
   scripts <- readScripts dir
-  pure (Relocant.Merge.merge migrations scripts)
+  pure (Relocant.Merge.merge applieds scripts)

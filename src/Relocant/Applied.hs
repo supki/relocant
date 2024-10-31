@@ -33,8 +33,8 @@ import Relocant.Duration (Duration)
 
 
 -- | An applied migration. Generally, it's created be either running a
--- migration 'Relocant.Script' or getting the records from the DB with 'getApplied'
--- or 'getAppliedByID'.
+-- migration 'Relocant.Script' with 'Relocant.apply' or getting the records
+-- from the DB with 'getApplied' or 'getAppliedByID'.
 data Applied = Applied
   { id        :: ID
   , name      :: Name

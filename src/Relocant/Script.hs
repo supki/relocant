@@ -42,8 +42,8 @@ import Relocant.Duration qualified as Duration
 import Relocant.Name (Name)
 
 
--- | A migration script. Generally, it's created with 'readScripts'
--- or 'readScript' for a finer-grained control.
+-- | A migration script. Most users would get them by running 'readScripts',
+-- but those wanting a more fine-grained control would use 'readScript'.
 data Script = Script
   { id      :: ID      -- ^ if XXX-YYYY.sql is the whole filename, then XXX is the id; see 'parseFilePath'
   , name    :: Name    -- ^ if XXX-YYYY.sql is the whole filename, then XXX-YYYY is the name
