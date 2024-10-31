@@ -34,7 +34,7 @@ spec =
         applied1 <- Script.markApplied script1
         Applied.record applied0 DB.defaultTable conn
         Applied.record applied1 DB.defaultTable conn
-        [a0, a1] <- Applied.selectAll DB.defaultTable conn
+        [a0, a1] <- Applied.getApplied DB.defaultTable conn
         a0.id `shouldBe` "00"
         a0.bytes `shouldBe` "CREATE TABLE foo ()"
         a1.id `shouldBe` "01"
@@ -50,10 +50,10 @@ spec =
             }
         applied <- Script.markApplied script
         Applied.record applied DB.defaultTable conn
-        Just a <- Applied.selectByID "00" DB.defaultTable conn
+        Just a <- Applied.getAppliedByID "00" DB.defaultTable conn
         a.id `shouldBe` "00"
         a.bytes `shouldBe` "CREATE TABLE foo ()"
-        Nothing <- Applied.selectByID "01" DB.defaultTable conn
+        Nothing <- Applied.getAppliedByID "01" DB.defaultTable conn
         pure ()
 
     describe "record" $
@@ -66,7 +66,7 @@ spec =
             }
         applied <- Script.markApplied script
         Applied.record applied DB.defaultTable conn
-        [a] <- Applied.selectAll DB.defaultTable conn
+        [a] <- Applied.getApplied DB.defaultTable conn
         a.id `shouldBe` "00"
         a.bytes `shouldBe` "CREATE TABLE foo ()"
 
@@ -88,7 +88,7 @@ spec =
         Applied.record applied0 DB.defaultTable conn
         Applied.record applied1 DB.defaultTable conn
         Applied.deleteAll DB.defaultTable conn
-        Applied.selectAll DB.defaultTable conn `shouldReturn` []
+        Applied.getApplied DB.defaultTable conn `shouldReturn` []
 
     describe "deleteByID" $
       it "deletes an applied migration by ID" $ \conn -> do
@@ -108,6 +108,6 @@ spec =
         Applied.record applied0 DB.defaultTable conn
         Applied.record applied1 DB.defaultTable conn
         True <- Applied.deleteByID "00" DB.defaultTable conn
-        [a] <- Applied.selectAll DB.defaultTable conn
+        [a] <- Applied.getApplied DB.defaultTable conn
         a.id `shouldBe` "01"
         a.bytes `shouldBe` "CREATE TABLE bar ()"

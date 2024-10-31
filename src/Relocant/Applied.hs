@@ -4,10 +4,11 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE ViewPatterns #-}
+-- | This module deals with applied migrations and their records in the DB.
 module Relocant.Applied
   ( Applied(..)
-  , selectAll
-  , selectByID
+  , getApplied
+  , getAppliedByID
   , record
   , deleteAll
   , deleteByID
@@ -31,15 +32,19 @@ import Relocant.Name (Name)
 import Relocant.Duration (Duration)
 
 
+-- | An applied migration. Generally, it's created be either running a
+-- migration 'Relocant.Script' or getting the records from the DB with 'getApplied'
+-- or 'getAppliedByID'.
 data Applied = Applied
   { id        :: ID
   , name      :: Name
   , bytes     :: ByteString
   , sha1      :: Digest SHA1
   , appliedAt :: At
-  , durationS :: Duration
+  , durationS :: Duration -- ^ how long it took to apply the migration script
   } deriving (Show, Eq)
 
+-- | The content (as in actual bytes) is skipped.
 instance Aeson.ToJSON Applied where
   toJSON a =
     Aeson.object
@@ -50,8 +55,9 @@ instance Aeson.ToJSON Applied where
       , "duration_s" .= a.durationS
       ]
 
-selectAll :: DB.Table -> DB.Connection -> IO [Applied]
-selectAll table conn = do
+-- | Retrieve all 'Applied' migrations' records from the DB.
+getApplied :: DB.Table -> DB.Connection -> IO [Applied]
+getApplied table conn = do
   DB.queryWith appliedP conn [DB.sql|
     SELECT id
          , name
@@ -63,8 +69,9 @@ selectAll table conn = do
   ORDER BY id
   |] (DB.Only table)
 
-selectByID :: ID -> DB.Table -> DB.Connection -> IO (Maybe Applied)
-selectByID id table conn = do
+-- | Retrieve the specific 'Applied' migration's record from the DB.
+getAppliedByID :: ID -> DB.Table -> DB.Connection -> IO (Maybe Applied)
+getAppliedByID id table conn = do
   ms <- DB.queryWith appliedP conn [DB.sql|
     SELECT id
          , name
@@ -77,6 +84,7 @@ selectByID id table conn = do
   |] (table, id)
   pure (listToMaybe ms)
 
+-- | Record a successfully 'Applied' migration.
 record :: Applied -> DB.Table -> DB.Connection -> IO ()
 record a table conn = do
   1 <- DB.execute conn [DB.sql|
@@ -104,6 +112,7 @@ record a table conn = do
      )
   pure ()
 
+-- | Delete all 'Applied' migrations' records from the DB.
 deleteAll :: DB.Table -> DB.Connection -> IO ()
 deleteAll table conn = do
   _rows <- DB.execute conn [DB.sql|
@@ -111,6 +120,7 @@ deleteAll table conn = do
   |] (DB.Only table)
   pure ()
 
+-- | Delete the specific 'Applied' migration's record from the DB.
 deleteByID :: ID -> DB.Table -> DB.Connection -> IO Bool
 deleteByID id table conn = do
   rows <- DB.execute conn [DB.sql|

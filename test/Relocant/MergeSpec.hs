@@ -10,7 +10,6 @@ import Test.Hspec
 
 import Relocant.Applied (Applied(..))
 import Relocant.At (epoch)
-import Relocant.Duration (zeroS)
 import Relocant.Merge (Merged(..), ContentMismatch(..), merge)
 import Relocant.Script (Script(..))
 
@@ -24,7 +23,7 @@ spec = do
       , bytes = "m1"
       , sha1 = hash @ByteString @SHA1 (fromString "m0")
       , appliedAt = epoch
-      , durationS = zeroS
+      , durationS = mempty
       }
     a2 = Applied
       { id = "02"
@@ -32,7 +31,7 @@ spec = do
       , bytes = "m2"
       , sha1 = hash @ByteString @SHA1 (fromString "m2")
       , appliedAt = epoch
-      , durationS = zeroS
+      , durationS = mempty
       }
     s0 = Script
       { id = "000"

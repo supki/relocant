@@ -27,10 +27,11 @@ import Relocant.App.Opts qualified as Opts
 import Relocant.App.Opts.Fmt (Fmt)
 import Relocant.App.Opts.Fmt qualified as Fmt
 import Relocant.App.ToText (ToText(..))
-import Relocant.Applied qualified as Applied (selectByID, deleteAll, deleteByID)
+import Relocant.Applied qualified as Applied
 import Relocant.DB qualified as DB (ConnectionString, Table, connect, dumpSchema, withLock, withTryLock)
 import Relocant.Script (readScript)
-import Relocant.Script qualified as Script (markApplied)
+import Relocant.Script qualified as Script
+import Relocant.Merge qualified as Merge
 
 
 run :: IO ()
@@ -112,13 +113,13 @@ runListUnapplied log opts = do
 runListApplied :: Log -> Opts.ListApplied -> IO ()
 runListApplied log opts = do
   withTryLock log opts $ \conn -> do
-    migrations <- Relocant.getApplied opts.table conn
+    migrations <- Applied.getApplied opts.table conn
     traverse_ (println opts.format) migrations
 
 runShowApplied :: Log -> Opts.ShowApplied -> IO ()
 runShowApplied log opts = do
   withTryLock log opts $ \conn -> do
-    applied <- Applied.selectByID opts.id opts.table conn
+    applied <- Applied.getAppliedByID opts.id opts.table conn
     maybe exitFailure (\a -> ByteString.putStr a.bytes) applied
 
 runVerify :: Log -> Opts.Verify -> IO ()
@@ -151,7 +152,7 @@ runMarkApplied log opts = do
         , "record" .= script.id
         ]
       markApplied <- Script.markApplied script
-      Relocant.record markApplied opts.table conn
+      Applied.record markApplied opts.table conn
 
 runDelete :: Log -> Opts.Delete -> IO ()
 runDelete log opts = do
@@ -172,7 +173,7 @@ runDeleteAll log opts = do
 verify :: Log -> DB.Table -> DB.Connection -> FilePath -> Maybe Fmt -> IO ()
 verify log table conn dir formatQ = do
   migrations <- Relocant.mergeAll table conn dir
-  unless (Relocant.converged migrations) $ do
+  unless (Merge.converged migrations) $ do
     Log.debug log
       [ "action" .= ("apply" :: String)
       , "unrecorded" .= map (.id) migrations.unrecorded
@@ -187,7 +188,7 @@ verify log table conn dir formatQ = do
 apply :: Log -> DB.Table -> DB.Connection -> FilePath -> Fmt -> IO ()
 apply log table conn scripts format = do
   merged <- Relocant.mergeAll table conn scripts
-  unless (Relocant.canApply merged) $ do
+  unless (Merge.canApply merged) $ do
     Log.error log
       [ "action" .= ("apply" :: String)
       , "result" .= ("not ready to apply the scripts, run `verify' first" :: String)
@@ -204,13 +205,13 @@ apply log table conn scripts format = do
         [ "action" .= ("apply" :: String)
         , "apply" .= script.id
         ]
-      applied <- Relocant.apply script conn
+      applied <- Script.apply script conn
       Log.debug log
         [ "action" .= ("apply" :: String)
         , "record" .= script.id
         , "duration" .= applied.durationS
         ]
-      Relocant.record applied table conn
+      Applied.record applied table conn
       println format applied
 
 withLock

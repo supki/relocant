@@ -125,23 +125,23 @@ readContent path = do
     , sha1 = hash bytes
     }
 
-applyWith :: (ByteString -> IO x) -> Script -> IO Applied
+applyWith :: (ByteString -> IO Duration) -> Script -> IO Applied
 applyWith f s = do
   appliedAt <- At.now
-  durationS <- Duration.measure_ (f s.bytes)
+  durationS <- f s.bytes
   pure (applied s appliedAt durationS)
 
 -- | Run a 'Script' against the database, get an 'Applied' migration back if successful.
 apply :: Script -> DB.Connection -> IO Applied
 apply s conn = do
-  applyWith (DB.execute_ conn . DB.Query) s
+  applyWith (Duration.measure_ . DB.execute_ conn . DB.Query) s
 
 -- | Get an 'Applied' migration from a 'Script', without running it. This should not
 -- be normally used, but can be useful for fixing checksums after cosmetics updates
 -- of migration 'Script's (such as adding comments, for example).
 markApplied :: Script -> IO Applied
 markApplied =
-  applyWith (\_bytes -> pure Duration.zeroS)
+  applyWith (\_bytes -> pure mempty)
 
 applied :: Script -> At -> Duration -> Applied
 applied s appliedAt durationS = Applied
