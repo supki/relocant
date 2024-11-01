@@ -90,6 +90,11 @@ Once we have another migration script to apply, we put it in the `migration` dir
 003     003-fix-typo            a3582319        2024-10-24 15:24:09 +0000       0.00s
 ```
 
+Library docs
+---
+
+See https://supki.github.io/relocant
+
 Acknowledgements
 ---
 
