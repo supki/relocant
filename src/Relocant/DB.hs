@@ -27,7 +27,7 @@ import Database.PostgreSQL.Simple.SqlQQ qualified as DB (sql)
 import Prelude hiding (init)
 import System.Process (callProcess)
 
-import Relocant.DB.Table (Table, defaultTable)
+import Relocant.DB.Table (Table(..), defaultTable)
 
 
 -- | PostgreSQL connection string. (This is a newtype over 'ByteString')
@@ -129,6 +129,6 @@ unlock table conn = do
   |] (DB.Only table)
   pure unlocked
 
-dumpSchema :: IO ()
-dumpSchema =
-  callProcess "pg_dump" ["--schema-only", "--no-owner", "--no-acl"]
+dumpSchema :: Table -> IO ()
+dumpSchema table =
+  callProcess "pg_dump" ["--schema-only", "--no-owner", "--no-acl", "--exclude-table", show table]

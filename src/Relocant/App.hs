@@ -134,8 +134,8 @@ runApply log opts = do
     verify log opts.table conn opts.scripts Nothing
 
 runDumpSchema :: Opts.DumpSchema -> IO ()
-runDumpSchema _opts =
-  DB.dumpSchema
+runDumpSchema opts =
+  DB.dumpSchema opts.table
 
 runMarkApplied :: Log -> Opts.MarkApplied -> IO ()
 runMarkApplied log opts = do

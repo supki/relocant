@@ -1,7 +1,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# OPTIONS_HADDOCK hide #-}
 module Relocant.DB.Table
-  ( Table
+  ( Table(..)
   , defaultTable
   ) where
 

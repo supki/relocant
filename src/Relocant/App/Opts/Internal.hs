@@ -36,7 +36,7 @@ parser :: Env -> Parser InternalCmd
 parser env =
   hsubparser
     ( command "dump-schema"
-      (info dumpSchemaP (progDesc "dump db schema"))
+      (info (dumpSchemaP env) (progDesc "dump db schema"))
    <> command "mark-applied"
       (info (markAppliedP env)
         (progDesc "mark a migration applied without running its script"))
@@ -48,6 +48,7 @@ parser env =
 
 data DumpSchema = MkDumpSchema
   { connString :: ConnectionString
+  , table      :: Table
   } deriving (Show, Eq, Generic)
 
 instance Aeson.ToJSON DumpSchema where
@@ -88,9 +89,10 @@ toJSONG =
         label -> label
     }
 
-dumpSchemaP :: Parser InternalCmd
-dumpSchemaP = do
+dumpSchemaP :: Env -> Parser InternalCmd
+dumpSchemaP env = do
   connString <- O.connectionString
+  table <- O.table env
   pure (DumpSchema MkDumpSchema {..})
 
 markAppliedP :: Env -> Parser InternalCmd
