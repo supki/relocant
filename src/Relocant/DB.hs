@@ -72,7 +72,7 @@ ensureMigrationTableExists conn table = do
     ( id         TEXT NOT NULL
     , name       TEXT NOT NULL
     , bytes      BYTEA NOT NULL
-    , sha1       BYTEA NOT NULL
+    , checksum   BYTEA NOT NULL
     , applied_at TIMESTAMPTZ NOT NULL
     , duration_s INTERVAL NOT NULL
     , PRIMARY KEY (id)

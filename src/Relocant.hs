@@ -12,6 +12,7 @@ module Relocant
   , Applied(..)
   , ID
   , Name
+  , Content
   , Duration
   , DB.Table
   , DB.defaultTable
@@ -39,6 +40,7 @@ import Database.PostgreSQL.Simple (Connection, withTransaction)
 
 import Relocant.Applied (Applied, getApplied, getAppliedByID)
 import Relocant.Applied qualified as Applied
+import Relocant.Content (Content)
 import Relocant.DB qualified as DB (ConnectionString, connect, withLock, withTryLock)
 import Relocant.DB.Table qualified as DB (Table, defaultTable)
 import Relocant.Duration (Duration)

@@ -88,7 +88,7 @@ merge applieds scripts =
       LT ->
         go (unrecorded, a : scriptMissing, contentMismatch) as (s : ss)
       EQ
-        | a.sha1 == s.sha1 ->
+        | a.checksum == s.checksum ->
           go (unrecorded, scriptMissing, contentMismatch) as ss
         | otherwise ->
           go (unrecorded, scriptMissing, ContentMismatch a s : contentMismatch) as ss

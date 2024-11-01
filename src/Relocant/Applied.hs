@@ -1,3 +1,4 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE PackageImports #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -14,19 +15,20 @@ module Relocant.Applied
   , deleteByID
   ) where
 
-import "crypton" Crypto.Hash (Digest, SHA1, digestFromByteString)
 import Data.Aeson qualified as Aeson
 import Data.Aeson ((.=))
-import Data.ByteArray (convert)
 import Data.ByteString (ByteString)
 import Data.Maybe (listToMaybe)
 import Database.PostgreSQL.Simple qualified as DB
 import Database.PostgreSQL.Simple.FromRow qualified as DB (RowParser, field)
 import Database.PostgreSQL.Simple.SqlQQ qualified as DB (sql)
+import GHC.Records (HasField(getField))
 import Prelude hiding (id, readFile)
 
 import Relocant.DB qualified as DB (Table)
 import Relocant.At (At)
+import Relocant.Checksum (Checksum(..))
+import Relocant.Content (Content(..))
 import Relocant.ID (ID)
 import Relocant.Name (Name)
 import Relocant.Duration (Duration)
@@ -38,8 +40,7 @@ import Relocant.Duration (Duration)
 data Applied = Applied
   { id        :: ID
   , name      :: Name
-  , bytes     :: ByteString
-  , sha1      :: Digest SHA1
+  , content   :: Content
   , appliedAt :: At
   , durationS :: Duration -- ^ how long it took to apply the migration script
   } deriving (Show, Eq)
@@ -50,10 +51,18 @@ instance Aeson.ToJSON Applied where
     Aeson.object
       [ "id" .= a.id
       , "name" .= a.name
-      , "sha1" .= show a.sha1
+      , "checksum" .= show a.checksum
       , "applied_at" .= a.appliedAt
       , "duration_s" .= a.durationS
       ]
+
+instance HasField "bytes" Applied ByteString where
+  getField s =
+    s.content.bytes
+
+instance HasField "checksum" Applied Checksum where
+  getField s =
+    s.content.checksum
 
 -- | Retrieve all 'Applied' migrations' records from the DB.
 getApplied :: DB.Table -> DB.Connection -> IO [Applied]
@@ -62,7 +71,7 @@ getApplied table conn = do
     SELECT id
          , name
          , bytes
-         , sha1
+         , checksum
          , applied_at
          , EXTRACT(epoch FROM duration_s) :: REAL
       FROM ?
@@ -76,7 +85,7 @@ getAppliedByID id table conn = do
     SELECT id
          , name
          , bytes
-         , sha1
+         , checksum
          , applied_at
          , EXTRACT(epoch FROM duration_s) :: REAL
       FROM ?
@@ -92,7 +101,7 @@ record a table conn = do
               ( id
               , name
               , bytes
-              , sha1
+              , checksum
               , applied_at
               , duration_s
               )
@@ -106,7 +115,7 @@ record a table conn = do
      , a.id
      , a.name
      , DB.Binary a.bytes
-     , DB.Binary (convert @_ @ByteString a.sha1)
+     , a.checksum
      , a.appliedAt
      , a.durationS
      )
@@ -134,10 +143,10 @@ appliedP = do
   id <- DB.field
   name <- DB.field
   DB.Binary bytes <- DB.field
-  DB.Binary bs <- DB.field
-  let
-    Just sha1 =
-      digestFromByteString @_ @ByteString bs
+  checksum <- DB.field
   appliedAt <- DB.field
   durationS <- DB.field
-  pure Applied {..}
+  pure Applied
+    { content = Content {..}
+    , ..
+    }

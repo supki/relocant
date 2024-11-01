@@ -8,7 +8,6 @@
 -- | This module deals with migrations that haven't yet been applied.
 module Relocant.Script
   ( Script(..)
-  , Content(..)
   , readScripts
   , readScript
   , apply
@@ -18,7 +17,7 @@ module Relocant.Script
   , readContent
   ) where
 
-import "crypton" Crypto.Hash (Digest, SHA1, hash)
+import "crypton" Crypto.Hash (hash)
 import Data.Aeson qualified as Aeson
 import Data.Aeson ((.=))
 import Data.ByteString (ByteString)
@@ -37,6 +36,8 @@ import Relocant.Applied (Applied(..))
 import Relocant.At (At)
 import Relocant.At qualified as At
 import Relocant.ID (ID)
+import Relocant.Checksum (Checksum(..))
+import Relocant.Content (Content(..))
 import Relocant.Duration (Duration)
 import Relocant.Duration qualified as Duration
 import Relocant.Name (Name)
@@ -56,28 +57,16 @@ instance Aeson.ToJSON Script where
     Aeson.object
       [ "id" .= s.id
       , "name" .= s.name
-      , "sha1" .= show s.sha1
+      , "checksum" .= show s.checksum
       ]
 
 instance HasField "bytes" Script ByteString where
   getField s =
     s.content.bytes
 
-instance HasField "sha1" Script (Digest SHA1) where
+instance HasField "checksum" Script Checksum where
   getField s =
-    s.content.sha1
-
--- | Migration content and its checksum.
-data Content = Content
-  { bytes :: ByteString
-  , sha1  :: Digest SHA1
-  } deriving (Show, Eq)
-
-instance IsString Content where
-  fromString str = Content
-    { bytes = fromString str
-    , sha1 = hash @ByteString @SHA1 (fromString str)
-    }
+    s.content.checksum
 
 -- | Read migration 'Script's from a directory. It only tries to read paths
 -- ending with the /.sql/ extension and doesn't recurse into subdirectories.
@@ -122,7 +111,7 @@ readContent path = do
   bytes <- ByteString.readFile path
   pure Content
     { bytes
-    , sha1 = hash bytes
+    , checksum = Checksum (hash bytes)
     }
 
 applyWith :: (ByteString -> IO Duration) -> Script -> IO Applied
@@ -147,8 +136,7 @@ applied :: Script -> At -> Duration -> Applied
 applied s appliedAt durationS = Applied
   { id = s.id
   , name = s.name
-  , bytes = s.bytes
-  , sha1 = s.sha1
+  , content = s.content
   , appliedAt
   , durationS
   }

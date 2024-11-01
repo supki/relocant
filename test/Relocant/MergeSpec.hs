@@ -3,9 +3,6 @@
 {-# LANGUAGE TypeApplications #-}
 module Relocant.MergeSpec (spec) where
 
-import Data.ByteString (ByteString)
-import Data.String (fromString)
-import "crypton" Crypto.Hash (SHA1, hash)
 import Test.Hspec
 
 import Relocant.Applied (Applied(..))
@@ -20,16 +17,14 @@ spec = do
     a1 = Applied
       { id = "01"
       , name = "01-m1"
-      , bytes = "m1"
-      , sha1 = hash @ByteString @SHA1 (fromString "m0")
+      , content = "m1"
       , appliedAt = epoch
       , durationS = mempty
       }
     a2 = Applied
       { id = "02"
       , name = "02-m2"
-      , bytes = "m2"
-      , sha1 = hash @ByteString @SHA1 (fromString "m2")
+      , content = "m2"
       , appliedAt = epoch
       , durationS = mempty
       }

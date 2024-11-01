@@ -35,7 +35,7 @@ arbitraryNameLengthCutOff = 20
 
 instance ToText Script where
   toText s =
-    fromString (printf "%s\t%s\t%s" s.id (toText s.name) (take 8 (show s.sha1)))
+    fromString (printf "%s\t%s\t%s" s.id (toText s.name) (take 8 (show s.checksum)))
 
 instance ToText Applied where
   toText a =
@@ -43,7 +43,7 @@ instance ToText Applied where
       (printf "%s\t%s\t%s\t%s\t%.2fs"
         a.id
         (toText a.name)
-        (take 8 (show a.sha1))
+        (take 8 (show a.checksum))
         (At.format "%F %T %z" a.appliedAt)
         a.durationS)
 
