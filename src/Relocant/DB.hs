@@ -27,7 +27,7 @@ import Database.PostgreSQL.Simple.SqlQQ qualified as DB (sql)
 import Prelude hiding (init)
 import System.Process (callProcess)
 
-import Relocant.DB.Table (Table(..), defaultTable)
+import Relocant.DB.Table (Table, defaultTable)
 
 
 -- | PostgreSQL connection string. (This is a newtype over 'ByteString')
@@ -46,6 +46,9 @@ instance Aeson.ToJSON ConnectionString where
 
 -- | Connect to the DB using the given 'ConnectionString' and
 -- initialize the migrations table.
+--
+-- /Note:/ If you get your 'DB.Connection' from elsewhere,
+-- remember to call 'init' yourself.
 connect :: ConnectionString -> Table -> IO DB.Connection
 connect (ConnectionString str) table = do
   conn <- DB.connectPostgreSQL str
