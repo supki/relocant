@@ -121,6 +121,9 @@ applyWith f s = do
   pure (applied s appliedAt durationS)
 
 -- | Run a 'Script' against the database, get an 'Applied' migration back if successful.
+--
+-- /Note:/ You probably want to run this together with 'Relocant.Applied.record'
+-- in a single transaction.
 apply :: Script -> DB.Connection -> IO Applied
 apply s conn = do
   applyWith (Duration.measure_ . DB.execute_ conn . DB.Query) s

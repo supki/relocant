@@ -28,6 +28,7 @@ module Relocant
 
   , Script.apply
   , Applied.record
+  , applyAll
   -- * Re-exports (postgresql-simple)
   --
   -- Generally, I'm against re-exports for convenience, but here I feel
@@ -36,6 +37,7 @@ module Relocant
   , withTransaction
   ) where
 
+import Data.Foldable (for_)
 import Database.PostgreSQL.Simple (Connection, withTransaction)
 
 import Relocant.Applied (Applied, getApplied, getAppliedByID)
@@ -59,3 +61,13 @@ mergeAll table conn dir = do
   applieds <- getApplied table conn
   scripts <- readScripts dir
   pure (Relocant.Merge.merge applieds scripts)
+
+-- | A convenience function that applied all unapplied migrations' scripts
+-- and records their application in the DB. Each script is run in a separate
+-- transaction.
+applyAll :: Relocant.Merge.Merged -> DB.Table -> Connection -> IO ()
+applyAll merged table conn =
+  for_ merged.unapplied $ \script -> do
+    withTransaction conn $ do
+      applied <- Script.apply script conn
+      Applied.record applied table conn

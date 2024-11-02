@@ -4,7 +4,6 @@
 module Main (main) where
 
 import Control.Monad (unless)
-import Data.Foldable (for_)
 import System.Exit (exitFailure)
 
 import Relocant qualified
@@ -23,11 +22,8 @@ main = do
     -- exit immediatelly if any problems have been detected
     unless (Relocant.canApply merged0) exitFailure
 
-    for_ merged0.unapplied $ \script ->
-      -- run a separate transaction for each unapplied migration script
-      Relocant.withTransaction conn $ do
-        applied <- Relocant.apply script conn
-        Relocant.record applied table conn
+    -- run a separate transaction for each unapplied migration script
+    Relocant.applyAll merged0 Relocant.defaultTable conn
 
     -- grab all data again, the scripts and applied migrations should've converged
     merged1 <- Relocant.mergeAll table conn "./migration"
