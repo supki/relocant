@@ -17,7 +17,7 @@ main = do
   -- lock the db, so that multiple relocant users can run concurrently
   Relocant.withLock table conn $ do
     -- grab all data and look for irregularities
-    merged0 <- Relocant.mergeAll table conn "./migration"
+    merged0 <- Relocant.mergeAll "./migration" table conn
 
     -- exit immediatelly if any problems have been detected
     unless (Relocant.canApply merged0) exitFailure
@@ -26,7 +26,7 @@ main = do
     Relocant.applyAll merged0 Relocant.defaultTable conn
 
     -- grab all data again, the scripts and applied migrations should've converged
-    merged1 <- Relocant.mergeAll table conn "./migration"
+    merged1 <- Relocant.mergeAll "./migration" table conn
 
     -- fail if they haven't
     unless (Relocant.converged merged1) exitFailure

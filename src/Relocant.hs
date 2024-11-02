@@ -56,8 +56,8 @@ import Relocant.Script qualified as Script
 
 -- | A convenience function that gets all applied migrations' records from
 -- the DB and merges them together with the migration scripts from a given directory.
-mergeAll :: DB.Table -> Connection -> FilePath -> IO Relocant.Merge.Merged
-mergeAll table conn dir = do
+mergeAll :: FilePath -> DB.Table -> Connection -> IO Relocant.Merge.Merged
+mergeAll dir table conn = do
   applieds <- getApplied table conn
   scripts <- readScripts dir
   pure (Relocant.Merge.merge applieds scripts)

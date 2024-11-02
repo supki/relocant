@@ -107,7 +107,7 @@ runInternalCmd log = \case
 runListUnapplied :: Log -> Opts.ListUnapplied -> IO ()
 runListUnapplied log opts = do
   withTryLock log opts $ \conn -> do
-    migrations <- Relocant.mergeAll opts.table conn opts.scripts
+    migrations <- Relocant.mergeAll opts.scripts opts.table conn
     traverse_ (println opts.format) migrations.unapplied
 
 runListApplied :: Log -> Opts.ListApplied -> IO ()
@@ -125,13 +125,13 @@ runShowApplied log opts = do
 runVerify :: Log -> Opts.Verify -> IO ()
 runVerify log opts = do
   withTryLock log opts $ \conn -> do
-    verify log opts.table conn opts.scripts (opts.format <$ guard (not opts.quiet))
+    verify log opts.scripts (opts.format <$ guard (not opts.quiet)) opts.table conn
 
 runApply :: Log -> Opts.Apply -> IO ()
 runApply log opts = do
   withLock log opts $ \conn -> do
-    apply log opts.table conn opts.scripts opts.format
-    verify log opts.table conn opts.scripts Nothing
+    apply log opts.scripts opts.format opts.table conn
+    verify log opts.scripts Nothing opts.table conn
 
 runDumpSchema :: Opts.DumpSchema -> IO ()
 runDumpSchema opts =
@@ -170,9 +170,9 @@ runDeleteAll log opts = do
   withTryLock log opts $ \conn -> do
     Applied.deleteAll opts.table conn
 
-verify :: Log -> DB.Table -> DB.Connection -> FilePath -> Maybe Fmt -> IO ()
-verify log table conn dir formatQ = do
-  migrations <- Relocant.mergeAll table conn dir
+verify :: Log -> FilePath -> Maybe Fmt -> DB.Table -> DB.Connection -> IO ()
+verify log dir formatQ table conn = do
+  migrations <- Relocant.mergeAll dir table conn
   unless (Merge.converged migrations) $ do
     Log.debug log
       [ "action" .= ("apply" :: String)
@@ -185,9 +185,9 @@ verify log table conn dir formatQ = do
       println format migrations
     exitFailure
 
-apply :: Log -> DB.Table -> DB.Connection -> FilePath -> Fmt -> IO ()
-apply log table conn scripts format = do
-  merged <- Relocant.mergeAll table conn scripts
+apply :: Log -> FilePath -> Fmt -> DB.Table -> DB.Connection -> IO ()
+apply log scripts format table conn = do
+  merged <- Relocant.mergeAll scripts table conn
   unless (Merge.canApply merged) $ do
     Log.error log
       [ "action" .= ("apply" :: String)
