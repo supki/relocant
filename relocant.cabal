@@ -1,4 +1,4 @@
-cabal-version: 1.24
+cabal-version: 2.0
 
 -- This file has been generated from package.yaml by hpack version 0.36.0.
 --
@@ -14,14 +14,14 @@ copyright:      2024 Matvey Aksenov
 license:        BSD2
 license-file:   LICENSE
 build-type:     Custom
-extra-source-files:
+extra-doc-files:
     README.markdown
     CHANGELOG.markdown
 
 custom-setup
   setup-depends:
-      Cabal
-    , base
+      Cabal ==3.10.*
+    , base >=4.18 && <5
     , directory
     , filepath
     , process
@@ -48,9 +48,12 @@ library
       Relocant.Merge
       Relocant.Name
       Relocant.Script
-  other-modules:
       Meta_relocant
+  other-modules:
       Paths_relocant
+  autogen-modules:
+      Paths_relocant
+      Meta_relocant
   hs-source-dirs:
       src
   default-extensions:
@@ -59,10 +62,10 @@ library
       OverloadedStrings
       OverloadedRecordDot
       StrictData
-  ghc-options: -funbox-strict-fields -Wall -Wno-incomplete-uni-patterns -Werror
+  ghc-options: -funbox-strict-fields -Wall -Wcompat -Wno-incomplete-uni-patterns
   build-depends:
       aeson
-    , base >=4.7 && <5
+    , base >=4.18 && <5
     , bytestring
     , crypton
     , directory
@@ -80,6 +83,8 @@ executable relocant
   main-is: Main.hs
   other-modules:
       Paths_relocant
+  autogen-modules:
+      Paths_relocant
   hs-source-dirs:
       driver
   default-extensions:
@@ -88,9 +93,9 @@ executable relocant
       OverloadedStrings
       OverloadedRecordDot
       StrictData
-  ghc-options: -Wall -Wno-incomplete-uni-patterns -threaded -with-rtsopts=-N
+  ghc-options: -Wall -Wcompat -Wno-incomplete-uni-patterns -threaded -with-rtsopts=-N
   build-depends:
-      base >=4.7 && <5
+      base >=4.18 && <5
     , relocant
   default-language: Haskell2010
 
@@ -106,6 +111,8 @@ test-suite spec
       Spec
       SpecHelper.DB
       Paths_relocant
+  autogen-modules:
+      Paths_relocant
   hs-source-dirs:
       test
   default-extensions:
@@ -114,9 +121,9 @@ test-suite spec
       OverloadedStrings
       OverloadedRecordDot
       StrictData
-  ghc-options: -freduction-depth=0 -Wall -Wno-incomplete-uni-patterns -Werror -threaded -with-rtsopts=-N
+  ghc-options: -freduction-depth=0 -Wall -Wcompat -Wno-incomplete-uni-patterns -threaded -with-rtsopts=-N
   build-depends:
-      base >=4.7 && <5
+      base >=4.18 && <5
     , bytestring
     , filepath
     , hspec

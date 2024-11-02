@@ -7,20 +7,20 @@ license:             BSD2
 author:              Matvey Aksenov
 maintainer:          matvey.aksenov@gmail.com
 copyright:           2024 Matvey Aksenov
-extra-source-files:
+extra-doc-files:
   - README.markdown
   - CHANGELOG.markdown
 
 custom-setup:
   dependencies:
-    - base
-    - Cabal
+    - base >= 4.18 && < 5
+    - Cabal >= 3.10 && < 3.11
     - directory
     - filepath
     - process
 
 dependencies:
-  - base >= 4.7 && < 5
+  - base >= 4.18 && < 5
 
 default-extensions:
   - ImportQualifiedPost
@@ -46,13 +46,15 @@ library:
   source-dirs:
     src
   other-modules:
-    - Meta_relocant
     - Paths_relocant
+  generated-exposed-modules:
+    - Meta_relocant
   ghc-options:
     - -funbox-strict-fields
     - -Wall
+    - -Wcompat
     - -Wno-incomplete-uni-patterns
-    - -Werror
+    # - -Werror
 
 executables:
   relocant:
@@ -64,6 +66,7 @@ executables:
       Main.hs
     ghc-options:
       - -Wall
+      - -Wcompat
       - -Wno-incomplete-uni-patterns
       # - -Werror
       - -threaded
@@ -87,7 +90,8 @@ tests:
     ghc-options:
       - -freduction-depth=0
       - -Wall
+      - -Wcompat
       - -Wno-incomplete-uni-patterns
-      - -Werror
+      # - -Werror
       - -threaded
       - -with-rtsopts=-N
