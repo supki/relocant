@@ -52,6 +52,9 @@ defaultTable :: Table
 
 -- | Connect to the DB using the given <a>ConnectionString</a> and
 --   initialize the migrations table.
+--   
+--   <i>Note:</i> If you get your <a>Connection</a> from elsewhere,
+--   remember to call <a>init</a> yourself.
 connect :: ConnectionString -> Table -> IO Connection
 
 -- | Initialize the migrations table.
@@ -80,7 +83,7 @@ tryLock :: Table -> Connection -> IO Bool
 
 -- | Use <i>pg_advisory_unlock</i> to unlock the database.
 unlock :: Table -> Connection -> IO Bool
-dumpSchema :: IO ()
+dumpSchema :: Table -> IO ()
 instance Data.String.IsString Relocant.DB.ConnectionString
 instance GHC.Classes.Eq Relocant.DB.ConnectionString
 instance GHC.Show.Show Relocant.DB.ConnectionString
@@ -133,6 +136,9 @@ getApplied :: Table -> Connection -> IO [Applied]
 getAppliedByID :: ID -> Table -> Connection -> IO (Maybe Applied)
 
 -- | Record a successfully <a>Applied</a> migration.
+--   
+--   <i>Note:</i> You probably want to run this together with <a>apply</a>
+--   in a single transaction.
 record :: Applied -> Table -> Connection -> IO ()
 
 -- | Delete all <a>Applied</a> migrations' records from the DB.
@@ -178,6 +184,9 @@ readScript :: FilePath -> IO Script
 
 -- | Run a <a>Script</a> against the database, get an <a>Applied</a>
 --   migration back if successful.
+--   
+--   <i>Note:</i> You probably want to run this together with <a>record</a>
+--   in a single transaction.
 apply :: Script -> Connection -> IO Applied
 
 -- | Get an <a>Applied</a> migration from a <a>Script</a>, without running
@@ -240,6 +249,9 @@ data ConnectionString
 
 -- | Connect to the DB using the given <a>ConnectionString</a> and
 --   initialize the migrations table.
+--   
+--   <i>Note:</i> If you get your <a>Connection</a> from elsewhere,
+--   remember to call <a>init</a> yourself.
 connect :: ConnectionString -> Table -> IO Connection
 
 -- | Use <i>pg_advisory_{lock,unlock}</i> to restrict access to the
@@ -298,7 +310,7 @@ merge :: [Applied] -> [Script] -> Merged
 -- | A convenience function that gets all applied migrations' records from
 --   the DB and merges them together with the migration scripts from a
 --   given directory.
-mergeAll :: Table -> Connection -> FilePath -> IO Merged
+mergeAll :: FilePath -> Table -> Connection -> IO Merged
 
 -- | The result of merging <a>Script</a>s and <a>Applied</a> migrations.
 data Merged
@@ -333,10 +345,21 @@ converged :: Merged -> Bool
 
 -- | Run a <a>Script</a> against the database, get an <a>Applied</a>
 --   migration back if successful.
+--   
+--   <i>Note:</i> You probably want to run this together with <a>record</a>
+--   in a single transaction.
 apply :: Script -> Connection -> IO Applied
 
 -- | Record a successfully <a>Applied</a> migration.
+--   
+--   <i>Note:</i> You probably want to run this together with <a>apply</a>
+--   in a single transaction.
 record :: Applied -> Table -> Connection -> IO ()
+
+-- | A convenience function that applies all unapplied migrations' scripts
+--   and records their application in the DB. Each script is run in a
+--   separate transaction.
+applyAll :: Merged -> Table -> Connection -> IO ()
 data () => Connection
 
 -- | Execute an action inside a SQL transaction.
