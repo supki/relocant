@@ -52,14 +52,14 @@ instance Aeson.ToJSON ConnectionString where
 connect :: ConnectionString -> Table -> IO DB.Connection
 connect (ConnectionString str) table = do
   conn <- DB.connectPostgreSQL str
-  init conn table
+  init table conn
   pure conn
 
 -- | Initialize the migrations table.
-init :: DB.Connection -> Table -> IO ()
-init conn table = do
+init :: Table -> DB.Connection -> IO ()
+init table conn = do
   setLessVerboseLogging conn
-  ensureMigrationTableExists conn table
+  ensureMigrationTableExists table conn
 
 setLessVerboseLogging :: DB.Connection -> IO ()
 setLessVerboseLogging conn = do
@@ -68,8 +68,8 @@ setLessVerboseLogging conn = do
   |]
   pure ()
 
-ensureMigrationTableExists :: DB.Connection -> Table -> IO ()
-ensureMigrationTableExists conn table = do
+ensureMigrationTableExists :: Table -> DB.Connection -> IO ()
+ensureMigrationTableExists table conn = do
   _ <- DB.execute conn [DB.sql|
     CREATE TABLE IF NOT EXISTS ?
     ( id         TEXT NOT NULL

@@ -19,7 +19,7 @@ main = do
     -- grab all data and look for irregularities
     merged0 <- Relocant.mergeAll "./migration" table conn
 
-    -- exit immediatelly if any problems have been detected
+    -- exit immediately if any problems have been detected
     unless (Relocant.canApply merged0) exitFailure
 
     -- run a separate transaction for each unapplied migration script

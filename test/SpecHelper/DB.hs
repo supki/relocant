@@ -23,7 +23,7 @@ createTemplate :: IO ()
 createTemplate = do
   withDB "relocant" (createDatabase "relocant_base")
   withDB "relocant_base" $ \conn -> do
-    DB.init conn "public.relocant_migration"
+    DB.init "public.relocant_migration" conn
     setTemplate "relocant_base" conn
     DB.close conn
 
