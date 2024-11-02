@@ -62,7 +62,7 @@ mergeAll table conn dir = do
   scripts <- readScripts dir
   pure (Relocant.Merge.merge applieds scripts)
 
--- | A convenience function that applied all unapplied migrations' scripts
+-- | A convenience function that applies all unapplied migrations' scripts
 -- and records their application in the DB. Each script is run in a separate
 -- transaction.
 applyAll :: Relocant.Merge.Merged -> DB.Table -> Connection -> IO ()

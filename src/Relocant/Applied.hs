@@ -94,6 +94,9 @@ getAppliedByID id table conn = do
   pure (listToMaybe ms)
 
 -- | Record a successfully 'Applied' migration.
+--
+-- /Note:/ You probably want to run this together with 'Relocant.Script.apply'
+-- in a single transaction.
 record :: Applied -> DB.Table -> DB.Connection -> IO ()
 record a table conn = do
   1 <- DB.execute conn [DB.sql|
