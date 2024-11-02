@@ -8,6 +8,10 @@
 @package relocant
 @version 1.0.0
 
+module Meta_relocant
+name :: IsString str => str
+version :: IsString str => str
+
 
 -- | This module deals with getting the moment of time something's
 --   happened.
@@ -58,7 +62,7 @@ defaultTable :: Table
 connect :: ConnectionString -> Table -> IO Connection
 
 -- | Initialize the migrations table.
-init :: Connection -> Table -> IO ()
+init :: Table -> Connection -> IO ()
 
 -- | Use <i>pg_advisory_{lock,unlock}</i> to restrict access to the
 --   migrations table. The given table is used to generate the lock's ID,
