@@ -17,6 +17,7 @@ module Relocant.Script
   , readContent
   ) where
 
+import Control.Exception (catch, throwIO)
 import "crypton" Crypto.Hash (hash)
 import Data.Aeson qualified as Aeson
 import Data.Aeson ((.=))
@@ -124,9 +125,23 @@ applyWith f s = do
 --
 -- /Note:/ You probably want to run this together with 'Relocant.Applied.record'
 -- in a single transaction.
+-- /Note:/ This has to run inside a transaction context, will error out otherwise.
 apply :: Script -> DB.Connection -> IO Applied
 apply s conn = do
-  applyWith (Duration.measure_ . DB.execute_ conn . DB.Query) s
+  applyWith (Duration.measure_ . execute_ conn . DB.Query) s
+
+-- Like DB.execute_, but ignores empty query errors.
+execute_ :: DB.Connection -> DB.Query -> IO ()
+execute_ conn query = do
+  _ <- DB.withSavepoint conn (DB.execute_ conn query)
+  pure ()
+ `catch`
+  \exc ->
+    case exc of
+      DB.QueryError {DB.qeMessage = "execute: Empty query"} ->
+        pure ()
+      _ ->
+        throwIO exc
 
 -- | Get an 'Applied' migration from a 'Script', without running it. This should not
 -- be normally used, but can be useful for fixing checksums after cosmetics updates

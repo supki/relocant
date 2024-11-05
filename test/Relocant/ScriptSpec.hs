@@ -3,6 +3,7 @@
 {-# LANGUAGE TypeApplications #-}
 module Relocant.ScriptSpec (spec) where
 
+import Database.PostgreSQL.Simple (withTransaction)
 import Prelude hiding (id)
 import System.FilePath ((</>))
 import System.IO.Temp
@@ -91,7 +92,7 @@ spec = do
           ]
 
   around DB.withTemplateCloned $ do
-    describe "apply" $
+    describe "apply" $ do
       it "runs a migration script" $ \conn -> do
         let
           script = Script
@@ -99,5 +100,18 @@ spec = do
             , name = "00-oops"
             , content = "CREATE TABLE foo ()"
             }
-        _durationS <- apply script conn
-        pure ()
+        withTransaction conn $ do
+          _durationS <- apply script conn
+          pure ()
+
+      context "empty script" $
+        it "runs a migration script" $ \conn -> do
+          let
+            script = Script
+              { id = "00"
+              , name = "00-oops"
+              , content = ""
+              }
+          withTransaction conn $ do
+            _durationS <- apply script conn
+            pure ()
