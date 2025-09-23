@@ -1,3 +1,4 @@
+{-# LANGUAGE DuplicateRecordFields #-}
 -- | A PostgreSQL migration library
 module Relocant
   ( Script(..)
